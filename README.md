@@ -1,7 +1,7 @@
 # EdgeOne Pages / cloudflare workers短链接生成器
 
 一个短链接生成器，支持 URL 缩短、文本内容存储、访问统计等功能。
-
+根据tinystacklab/cloudflare-short-link-generator项目AI修改而来
 ## 功能特性
 
 - 🔗 **URL 缩短**：将长链接转换为短链接
@@ -21,7 +21,7 @@
 
 
 ## 部署步骤
-###EdgeOne Pages
+## EdgeOne Pages
 ### 1. 准备工作
 
 - 注册腾讯云账号
@@ -56,12 +56,12 @@
 3. 按照提示完成域名解析配置
 
    
-###cloudflare workers
-1.复制worker.js到cloudflare workers
-2.创建KV存储
-3.创建变量名'LINKS_KV'与KV存储绑定
-4.部署访问
-5.配置自定义域名（可选）
+### cloudflare workers
+1. 复制worker.js到cloudflare workers
+2. 创建KV存储
+3. 创建变量名'LINKS_KV'与KV存储绑定
+4. 部署访问
+5. 配置自定义域名（可选）
 
 
 ## 使用说明
