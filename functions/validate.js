@@ -1,5 +1,5 @@
 export default async function onRequest(context) {
-    const { request } = context;
+    const { request, env } = context;
     
     // 只处理POST请求
     if (request.method !== 'POST') {
@@ -15,8 +15,8 @@ export default async function onRequest(context) {
     try {
         const { password } = await request.json();
         
-        // 这里使用预计算的哈希值（对应原始密码 "修改下面值"）
-        const expectedHash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+        // 从环境变量获取密码哈希值，如果未设置则使用默认值
+        const expectedHash = env.DEFAULT_PASSWORD_HASH || '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
         
         const isValid = await verifyPassword(password, expectedHash);
         
