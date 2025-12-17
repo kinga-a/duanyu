@@ -11,91 +11,24 @@ export default function onRequest(context) {
         return Response.redirect(domainPath, 302);
     }
     
-    // 检查请求路径是否匹配配置的域路径
-    if (path === domainPath || path === domainPath + '/' || path.startsWith(domainPath + '/')) {
-        // 将请求代理到 u.js 的逻辑
-        return handleURequest(context, domainPath);
+    // 处理配置路径 - 显示短链接生成器页面
+    if (path === domainPath || path === domainPath + '/') {
+        return handleHomePage(domainPath);
     }
     
     // 处理根路径下的短链接访问 (例如 /abc123)
     if (path !== '/' && path.split('/').length === 2 && path.length > 1) {
         // 提取短码（去掉开头的斜杠）
         const shortCode = path.substring(1);
-        return handleRootShortLink(context, shortCode);
+        return handleShortLink(context, shortCode);
+    }
+    
+    // 处理配置路径下的短链接访问 (例如 /a/abc123)
+    if (path.length > domainPath.length + 1 && path.startsWith(domainPath + '/')) {
+        const shortCode = path.substring(domainPath.length + 1); // 去掉配置的路径前缀
+        return handleShortLink(context, shortCode);
     }
   
-    return new Response('未找到页面', { status: 404 });
-}
-
-// 处理根路径下的短链接访问
-async function handleRootShortLink(context, shortCode) {
-    const { request, env } = context;
-    
-    try {
-        // 使用EdgeOne KV存储
-        const linkDataStr = await LINKS_KV.get(shortCode);
-
-        if (!linkDataStr) {
-            return new Response('短链接未找到', { status: 404 });
-        }
-
-        const linkData = JSON.parse(linkDataStr);
-
-        // 检查链接是否已过期
-        if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
-            // 删除过期的链接
-            await LINKS_KV.delete(shortCode);
-            await removeFromIndex(env, shortCode); // 同时从索引中移除
-            return new Response('此链接已过期并被移除', { status: 410 });
-        }
-
-        // 增加点击计数
-        linkData.clicks = (linkData.clicks || 0) + 1;
-        // 计算剩余TTL
-        const expirationTtl = linkData.expiresAt ? Math.floor((new Date(linkData.expiresAt).getTime() - new Date().getTime()) / 1000) : undefined;
-        await LINKS_KV.put(shortCode, JSON.stringify(linkData), {
-            expirationTtl: expirationTtl
-        });
-
-        // 如果是URL，则重定向
-        if (linkData.isUrl && !linkData.rawDisplay) {
-            return Response.redirect(linkData.content, 302);
-        }
-
-        // 如果是文本，检查显示模式
-        if (linkData.rawDisplay) {
-            // 显示原始内容
-            return new Response(linkData.content, {
-                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-            });
-        } else {
-            // 显示格式化内容页面
-            return handleTextContent(linkData.content, shortCode, linkData.clicks);
-        }
-
-    } catch (error) {
-        console.error('处理短链接错误:', error);
-        return new Response('服务器错误', { status: 500 });
-    }
-}
-
-// 代理 u.js 的逻辑
-function handleURequest(context, domainPath) {
-    const { request, env } = context;
-    const url = new URL(request.url);
-    const path = url.pathname;
-
-    // 处理首页 - 显示创建页面
-    if (path === domainPath || path === domainPath + '/') {
-        return handleHomePage(domainPath);
-    }
-
-    // 处理配置路径下的短链接访问 (例如 /a/abc123)
-    if (path.length > domainPath.length + 1) {
-        const shortCode = path.substring(domainPath.length + 1); // 去掉配置的路径前缀
-        return handleShortLink(request, env, shortCode);
-    }
-
     return new Response('未找到页面', { status: 404 });
 }
 
@@ -373,7 +306,9 @@ function handleHomePage(domainPath) {
 }
 
 // 处理短链接访问
-async function handleShortLink(request, env, shortCode) {
+async function handleShortLink(context, shortCode) {
+    const { request, env } = context;
+    
     try {
         // 使用EdgeOne KV存储
         const linkDataStr = await LINKS_KV.get(shortCode);
@@ -573,3 +508,6 @@ async function removeFromIndex(env, shortCode) {
         console.error('移除索引失败:', error);
     }
 }
+
+
+
