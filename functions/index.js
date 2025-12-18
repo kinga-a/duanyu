@@ -4,7 +4,7 @@ export default function onRequest(context) {
     const path = url.pathname;
   
     // 获取DOMAIN环境变量，如果未设置则使用默认路径/u
-    const domainPath = env?.DOMAIN || '/';
+    const domainPath = env?.DOMAIN || '/u';
   
     // 重定向到配置的首页路径
     if (path === '/') {
