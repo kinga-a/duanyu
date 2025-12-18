@@ -199,10 +199,10 @@ function handleHomePage() {
             <div class="form-group">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                     <input type="checkbox" id="rawDisplay" style="margin-right: 8px;">
-                    <label for="rawDisplay" style="margin: 0; cursor: pointer;">url是否以文本显示</label>
+                    <label for="rawDisplay" style="margin: 0; cursor: pointer;">以文本显示</label>
                 </div>
                 <small style="display: block; color: #666; margin-left: 24px;">
-                    启用后，url内容将以纯文本形式显示；文本内容不需要勾选
+                   （文本内容可不勾选***url内容或者html/js代码以文本显示可勾选）
                 </small>
             </div>
             
