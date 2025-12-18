@@ -16,7 +16,7 @@ export default async function onRequest(context) {
         const { password } = await request.json();
         
         // 从环境变量获取密码哈希值，如果未设置则使用默认值
-        const expectedHash = env.DEFAULT_PASSWORD_HASH || '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+        const expectedHash = env.PASSWORD || '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
         
         const isValid = await verifyPassword(password, expectedHash);
         
