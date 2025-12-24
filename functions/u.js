@@ -456,6 +456,7 @@ function handleTextContent(content, shortCode, clicks) {
             <button class="copy-btn" onclick="copyContent()">复制内容</button>
             <a href="/u" class="btn">创建新短链接</a>
             <a href="/stats" class="btn" style="background: #28a745;">查看所有链接统计</a>
+            <a href="https://github.com/kinga-a/duanyu" class="btn" style="background: #28a745;">GitHub</a>
         </div>
     </div>
 
