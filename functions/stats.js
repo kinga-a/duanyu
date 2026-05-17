@@ -1,7 +1,56 @@
 export default async function onRequest(context) {
     const { request, env } = context;
-    
-    // 检查是否有验证状态
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // 处理首页 - 显示创建页面
+    if (path === '/u' || path === '/u/') {
+        return handleHomePage();
+    }
+
+    // 处理短链接访问
+    if (path.length > 2 && path.startsWith('/u/')) {
+        const shortCode = path.substring(3); // 去掉 '/u/' 前缀
+        return handleShortLink(request, env, shortCode);
+    }
+
+    // 处理统计页面
+    if (path === '/stats' || path === '/stats/') {
+        return onRequestStats(context); // 调用验证逻辑
+    }
+
+    // 处理验证请求
+    if (path === '/validate') {
+        return handleValidation(request, env);
+    }
+
+    // 处理登出
+    if (path === '/logout') {
+        return handleLogout();
+    }
+
+    // 处理删除 API
+    if (path.startsWith('/api/delete/')) {
+        const shortCode = path.substring('/api/delete/'.length);
+        return handleDelete(request, env, shortCode);
+    }
+
+    // 新增：处理编辑 API
+    if (path.startsWith('/api/edit/')) {
+        const shortCode = path.substring('/api/edit/'.length);
+        return handleEdit(request, env, shortCode);
+    }
+
+    // 处理创建 API
+    if (path === '/api/create') {
+        return handleCreate(request, env);
+    }
+
+    return new Response('未找到页面', { status: 404 });
+}
+
+
+// 检查是否有验证状态
     const cookies = request.headers.get('Cookie') || '';
     const hasValidated = cookies.includes('validated=true');
     
@@ -820,6 +869,84 @@ async function handleStatsPage(env) {
     </script>
 </body>
 </html>`;
+
+  // 处理编辑链接
+async function handleEdit(request, env, shortCode) {
+    if (request.method !== 'PUT') {
+        return new Response(JSON.stringify({ success: false, error: '方法不允许' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    try {
+        // 检查链接是否存在
+        const linkDataStr = await env.LINKS_KV.get(shortCode);
+        if (!linkDataStr) {
+            return new Response(JSON.stringify({ success: false, error: '短链接不存在' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const linkData = JSON.parse(linkDataStr);
+        const body = await request.json();
+        const { content, rawDisplay, expiration } = body;
+
+        if (!content || content.trim() === '') {
+            return new Response(JSON.stringify({ success: false, error: '内容不能为空' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // 更新内容
+        linkData.content = content.trim();
+        linkData.rawDisplay = rawDisplay || false;
+        linkData.isUrl = isValidURL(content.trim());
+
+        // 处理有效期更新
+        if (expiration && expiration !== 'keep') {
+            if (expiration === 'never') {
+                linkData.expiresAt = null;
+            } else {
+                const now = new Date();
+                let expiresAt = new Date(now);
+                
+                switch (expiration) {
+                    case '10m': expiresAt.setMinutes(now.getMinutes() + 10); break;
+                    case '30m': expiresAt.setMinutes(now.getMinutes() + 30); break;
+                    case '1h': expiresAt.setHours(now.getHours() + 1); break;
+                    case '24h': expiresAt.setHours(now.getHours() + 24); break;
+                    case '7d': expiresAt.setDate(now.getDate() + 7); break;
+                    case '30d': expiresAt.setDate(now.getDate() + 30); break;
+                }
+                
+                linkData.expiresAt = expiresAt.toISOString();
+            }
+        }
+
+        // 保存更新
+        const expirationTtl = linkData.expiresAt ? 
+            Math.floor((new Date(linkData.expiresAt).getTime() - new Date().getTime()) / 1000) : 
+            undefined;
+
+        await env.LINKS_KV.put(shortCode, JSON.stringify(linkData), {
+            expirationTtl: expirationTtl
+        });
+
+        return new Response(JSON.stringify({ success: true }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (error) {
+        console.error('编辑链接错误:', error);
+        return new Response(JSON.stringify({ success: false, error: '服务器错误' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+}  
     
         return new Response(html, {
             headers: { 'Content-Type': 'text/html; charset=utf-8' }
