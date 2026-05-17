@@ -189,35 +189,36 @@ function showValidationPage() {
     });
 }
 
+
 // 处理统计页面 - 显示所有链接信息
 async function handleStatsPage(env) {
     try {
         // 获取索引列表
-        let index = await LINKS_KV.get('__index__', 'json');
+        let index = await env.LINKS_KV.get('__index__', 'json');
         if (!index) {
             index = [];
         }
 
         // 过滤掉不存在的链接并收集链接数据
         const links = [];
-        const processedIndex = []; // 用于过滤不存在的链接
+        const processedIndex = [];
         
         for (const shortCode of index) {
-            const linkDataStr = await LINKS_KV.get(shortCode);
+            const linkDataStr = await env.LINKS_KV.get(shortCode);
             if (linkDataStr) {
                 const linkData = JSON.parse(linkDataStr);
                 
                 // 检查链接是否已过期
                 if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
-                    // 删除过期的链接
-                    await LINKS_KV.delete(shortCode);
-                    continue; // 跳过此链接
+                    await env.LINKS_KV.delete(shortCode);
+                    continue;
                 }
                 
                 links.push({
                     shortCode: shortCode,
                     content: linkData.content,
                     isUrl: linkData.isUrl,
+                    rawDisplay: linkData.rawDisplay || false,
                     clicks: linkData.clicks || 0,
                     createdAt: linkData.createdAt,
                     expiresAt: linkData.expiresAt
@@ -226,8 +227,8 @@ async function handleStatsPage(env) {
             }
         }
         
-        // 更新索引，移除不存在的链接
-        await LINKS_KV.put('__index__', JSON.stringify(processedIndex));
+        // 更新索引
+        await env.LINKS_KV.put('__index__', JSON.stringify(processedIndex));
 
         const html = `
 <!DOCTYPE html>
@@ -251,7 +252,7 @@ async function handleStatsPage(env) {
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -269,7 +270,29 @@ async function handleStatsPage(env) {
         .controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
         }
         
         .btn {
@@ -287,21 +310,30 @@ async function handleStatsPage(env) {
             transform: translateY(-2px);
         }
         
-        /* 新增：限制表格容器 */
+        .logout-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        
+        .stats-info {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        
         .table-container {
-            overflow-x: auto; /* 关键：允许水平滚动 */
-            border-radius: 10px; /* 保持圆角 */
-            margin-top: 20px; /* 与上方控件间距 */
+            overflow-x: auto;
+            border-radius: 10px;
+            margin-top: 20px;
         }
         
         table {
-            width: 100%; /* 表格宽度占满容器 */
-            min-width: 600px; /* 设置最小宽度，确保在内容多时不会压缩太小 */
+            width: 100%;
+            min-width: 800px;
             border-collapse: collapse;
         }
         
         th, td {
-            padding: 15px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
@@ -309,29 +341,75 @@ async function handleStatsPage(env) {
         th {
             background-color: #f5f5f5;
             font-weight: 600;
+            position: sticky;
+            top: 0;
         }
         
         tr:hover {
             background-color: #f9f9f9;
         }
         
+        .short-code {
+            font-family: monospace;
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .content-preview {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            color: #667eea;
+            text-decoration: underline;
+        }
+        
+        .content-preview:hover {
+            color: #764ba2;
+        }
+        
+        .action-btns {
+            display: flex;
+            gap: 5px;
+            flex-wrap: nowrap;
+        }
+        
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .edit-btn:hover {
+            background: #1976D2;
+        }
+        
         .delete-btn {
             background: #f44336;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 6px 12px;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 14px;
         }
         
         .delete-btn:hover {
             background: #d32f2f;
         }
         
-        .loading {
+        .empty-message {
             text-align: center;
-            padding: 20px;
-            display: none;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
         }
         
         .back-link {
@@ -344,36 +422,102 @@ async function handleStatsPage(env) {
             text-decoration: none;
         }
         
-        .back-link a:hover {
-            text-decoration: underline;
+        /* 模态框样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
         
-        .empty-message {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            font-style: italic;
+        .modal-overlay.show {
+            display: flex;
         }
         
-        .full-url {
-            word-break: break-all;
-            max-width: 300px;
-            display: inline-block;
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
         
-        .logout-btn {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .modal .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .modal label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .modal textarea, .modal input[type="text"], .modal select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
             font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s;
+            font-family: inherit;
         }
         
-        .logout-btn:hover {
-            transform: translateY(-2px);
+        .modal textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .modal textarea:focus, .modal input:focus, .modal select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .modal .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .type-url {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .type-text {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -382,17 +526,19 @@ async function handleStatsPage(env) {
         <h1>📊 所有链接统计</h1>
         
         <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 搜索短码、内容..." oninput="filterLinks()">
+            </div>
             <button class="btn" onclick="loadLinks()">刷新数据</button>
-            <button class="logout-btn" onclick="logout()">退出验证</button>
+            <button class="btn logout-btn" onclick="logout()">退出验证</button>
         </div>
         
-        <div class="loading" id="loading">
-            <p>正在加载链接...</p>
+        <div class="stats-info" id="statsInfo">
+            共 <strong>${links.length}</strong> 条链接
         </div>
         
-        <!-- 将表格包装在一个容器中 -->
         <div class="table-container">
-        ` + (links.length === 0 ? 
+        ${links.length === 0 ? 
         `<div class="empty-message">暂无链接数据</div>` : 
         `<table id="linksTable">
             <thead>
@@ -407,173 +553,269 @@ async function handleStatsPage(env) {
                 </tr>
             </thead>
             <tbody id="linksList">
-                ` + links.map(link => {
-                    // 使用 toLocaleString 并指定时区
+                ${links.map(link => {
                     const expiresAt = link.expiresAt ? new Date(link.expiresAt).toLocaleString('zh-CN', { 
                       timeZone: 'Asia/Shanghai',
-                      year: 'numeric', 
-                      month: '2-digit', 
-                      day: '2-digit', 
-                      hour: '2-digit', 
-                      minute: '2-digit', 
-                      second: '2-digit',
+                      year: 'numeric', month: '2-digit', day: '2-digit', 
+                      hour: '2-digit', minute: '2-digit', second: '2-digit',
                       hour12: false 
                     }) : '永不';
                     const createdAt = new Date(link.createdAt).toLocaleString('zh-CN', { 
                       timeZone: 'Asia/Shanghai',
-                      year: 'numeric', 
-                      month: '2-digit', 
-                      day: '2-digit', 
-                      hour: '2-digit', 
-                      minute: '2-digit', 
-                      second: '2-digit',
+                      year: 'numeric', month: '2-digit', day: '2-digit', 
+                      hour: '2-digit', minute: '2-digit', second: '2-digit',
                       hour12: false 
                     });
-                    const isExpired = link.expiresAt && new Date(link.expiresAt) < new Date();
-                    const expiredClass = isExpired ? 'style="color: red;"' : '';
                     
-                    return `<tr>
-                        <td>${link.shortCode}</td>
-                        <td title="${link.content.replace(/"/g, '&quot;')}">
-                            <div class="full-url">${link.content.substring(0, 50) + (link.content.length > 50 ? '...' : '')}</div>
+                    return `<tr data-shortcode="${link.shortCode}" data-content="${link.content.replace(/"/g, '&quot;')}">
+                        <td><span class="short-code">${link.shortCode}</span></td>
+                        <td>
+                            <div class="content-preview" onclick="viewContent('${link.shortCode}')" title="点击查看完整内容">
+                                ${link.content.substring(0, 50)}${link.content.length > 50 ? '...' : ''}
+                            </div>
                         </td>
-                        <td>${link.isUrl ? '网址' : '文本'}</td>
+                        <td><span class="type-badge ${link.isUrl ? 'type-url' : 'type-text'}">${link.isUrl ? '网址' : '文本'}</span></td>
                         <td>${link.clicks}</td>
                         <td>${createdAt}</td>
-                        <td ${expiredClass}>${expiresAt}</td>
+                        <td>${expiresAt}</td>
                         <td>
-                            <button class="delete-btn" onclick="deleteLink('${link.shortCode}', event)">删除</button>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="editLink('${link.shortCode}')">编辑</button>
+                                <button class="delete-btn" onclick="deleteLink('${link.shortCode}', event)">删除</button>
+                            </div>
                         </td>
                     </tr>`;
-                }).join('') + `
+                }).join('')}
             </tbody>
-        </table>`) + `
-        </div> <!-- 结束 table-container -->
+        </table>`}
+        </div>
         
         <div class="back-link">
             <a href="/u" id="backToGenerator">← 返回生成器</a>
         </div>
     </div>
 
+    <!-- 编辑模态框 -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h2>✏️ 编辑链接内容</h2>
+            <div class="form-group">
+                <label>短码：</label>
+                <input type="text" id="editShortCode" readonly style="background: #f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label for="editContent">内容：</label>
+                <textarea id="editContent" placeholder="输入新的内容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="editRawDisplay" style="width: auto; margin-right: 8px;">
+                    以文本显示（raw）
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="editExpiration">更新有效期：</label>
+                <select id="editExpiration">
+                    <option value="keep">保持不变</option>
+                    <option value="never">永不过期</option>
+                    <option value="10m">10分钟</option>
+                    <option value="30m">30分钟</option>
+                    <option value="1h">1小时</option>
+                    <option value="24h">24小时</option>
+                    <option value="7d">7天</option>
+                    <option value="30d">30天</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn" onclick="saveEdit()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看内容模态框 -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <h2>📄 完整内容</h2>
+            <div class="form-group">
+                <label>短码：<span id="viewShortCode" class="short-code"></span></label>
+            </div>
+            <div class="form-group">
+                <textarea id="viewContent" readonly style="min-height: 200px; background: #f8f9fa;"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeViewModal()">关闭</button>
+                <button class="btn" onclick="copyViewContent()" style="background: #4caf50;">复制内容</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 获取配置的域名路径
         const domainPath = window.location.pathname.split('/')[1] || 'u';
-        
-        // 设置返回首页的链接
-        document.getElementById('backToHome').href = '/' + domainPath;
         document.getElementById('backToGenerator').href = '/' + domainPath;
         
-        async function loadLinks() {
-            window.location.reload();
+        let currentEditShortCode = null;
+        let allLinksData = ${JSON.stringify(links)};
+        
+        // 搜索过滤功能
+        function filterLinks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#linksList tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const shortCode = row.getAttribute('data-shortcode').toLowerCase();
+                const content = row.getAttribute('data-content').toLowerCase();
+                
+                if (shortCode.includes(searchTerm) || content.includes(searchTerm)) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('statsInfo').innerHTML = 
+                '共 <strong>' + allLinksData.length + '</strong> 条链接' + 
+                (searchTerm ? '，显示 <strong>' + visibleCount + '</strong> 条' : '');
         }
         
-        async function deleteLink(shortCode, event) {
-            // 阻止事件冒泡，防止在移动端触发其他行为
-            event.stopPropagation();
-            event.preventDefault();
+        // 查看完整内容
+        function viewContent(shortCode) {
+            const link = allLinksData.find(l => l.shortCode === shortCode);
+            if (!link) return;
             
-            if (!confirm('您确定要删除此链接吗？')) {
+            document.getElementById('viewShortCode').textContent = shortCode;
+            document.getElementById('viewContent').value = link.content;
+            document.getElementById('viewModal').classList.add('show');
+        }
+        
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.remove('show');
+        }
+        
+        function copyViewContent() {
+            const content = document.getElementById('viewContent').value;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('内容已复制！');
+            });
+        }
+        
+        // 编辑功能
+        function editLink(shortCode) {
+            const link = allLinksData.find(l => l.shortCode === shortCode);
+            if (!link) return;
+            
+            currentEditShortCode = shortCode;
+            document.getElementById('editShortCode').value = shortCode;
+            document.getElementById('editContent').value = link.content;
+            document.getElementById('editRawDisplay').checked = link.rawDisplay || false;
+            document.getElementById('editExpiration').value = 'keep';
+            document.getElementById('editModal').classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+            currentEditShortCode = null;
+        }
+        
+        async function saveEdit() {
+            if (!currentEditShortCode) return;
+            
+            const content = document.getElementById('editContent').value.trim();
+            const rawDisplay = document.getElementById('editRawDisplay').checked;
+            const expiration = document.getElementById('editExpiration').value;
+            
+            if (!content) {
+                alert('内容不能为空！');
                 return;
             }
             
-            // 显示加载状态
-            const button = event.target;
-            const originalText = button.textContent;
-            button.textContent = '删除中...';
-            button.disabled = true;
+            try {
+                const response = await fetch('/api/edit/' + currentEditShortCode, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: content,
+                        rawDisplay: rawDisplay,
+                        expiration: expiration
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('修改成功！');
+                    window.location.reload();
+                } else {
+                    alert('修改失败：' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('网络错误：' + error.message);
+            }
+        }
+        
+        // 删除功能
+        async function deleteLink(shortCode, event) {
+            event.stopPropagation();
+            if (!confirm('确定要删除短码「' + shortCode + '」吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '删除中...';
             
             try {
                 const response = await fetch('/api/delete/' + shortCode, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest' // 添加请求头标识
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 
-                // 尝试获取响应数据
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    // 如果无法解析JSON，则创建默认响应对象
-                    if (response.ok) {
-                        data = { success: true };
-                    } else {
-                        data = { success: false, error: '服务器响应无效' };
-                    }
-                }
+                const data = await response.json();
                 
                 if (data.success) {
-                    // 删除成功，提示用户并刷新页面
-                    alert('链接删除成功');
-                    loadLinks(); // 刷新页面
+                    alert('删除成功！');
+                    window.location.reload();
                 } else {
-                    throw new Error(data.error || '未知错误');
+                    throw new Error(data.error || '删除失败');
                 }
             } catch (error) {
-                console.error('删除链接错误:', error);
-                alert('删除链接失败：' + error.message);
-            } finally {
-                // 恢复按钮状态
-                button.textContent = originalText;
-                button.disabled = false;
+                alert('删除失败：' + error.message);
+                btn.disabled = false;
+                btn.textContent = '删除';
             }
+        }
+        
+        function loadLinks() {
+            window.location.reload();
         }
         
         async function logout() {
-            // 显示确认对话框
-            if (!confirm('您确定要退出验证吗？下次访问统计页面需要重新验证。')) {
-                return;
-            }
+            if (!confirm('确定要退出验证吗？')) return;
             
             try {
-                // 通过发送请求到服务器端点来清除cookie
-                const response = await fetch('/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                // 如果服务器返回重定向状态，则手动重定向
-                if (response.status === 302 || response.status === 200) {
-                    // 重定向到首页
-                    window.location.href = '/' + domainPath;
-                } else {
-                    // 如果响应不是预期的状态，尝试手动清除cookie并重定向
-                    clearCookieAndRedirect();
-                }
-            } catch (error) {
-                console.error('退出验证错误:', error);
-                // 如果网络请求失败，仍然尝试手动清除cookie并重定向
-                clearCookieAndRedirect();
-            }
-        }
-        
-        // 辅助函数：手动清除cookie并重定向
-        function clearCookieAndRedirect() {
-            // 手动清除验证cookie
-            document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
-            document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + window.location.hostname;
+                await fetch('/logout', { method: 'POST' });
+            } catch (e) {}
             
-            // 重定向到首页
-            const domainPath = window.location.pathname.split('/')[1] || 'u';
+            document.cookie = 'validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '/' + domainPath;
         }
         
-        // 为所有删除按钮添加触摸事件处理，防止移动端误触
-        document.addEventListener('DOMContentLoaded', function() {
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            deleteButtons.forEach(button => {
-                // 添加触摸开始事件
-                button.addEventListener('touchstart', function(e) {
-                    // 防止默认的触摸行为
-                    e.preventDefault();
-                });
+        // 点击模态框外部关闭
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                }
             });
+        });
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+            }
         });
     </script>
 </body>
