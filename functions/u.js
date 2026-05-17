@@ -46,6 +46,7 @@ function handleHomePage() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔗短链接生成器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -150,6 +151,11 @@ function handleHomePage() {
             margin: 10px 0;
             word-break: break-all;
             font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .copy-btn {
@@ -159,13 +165,75 @@ function handleHomePage() {
             padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
-            margin-left: 10px;
+            white-space: nowrap;
         }
         
         .loading {
             display: none;
             text-align: center;
             margin-top: 10px;
+        }
+
+        /* 二维码样式 */
+        .qr-section {
+            margin-top: 20px;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #e1e5e9;
+        }
+
+        .qr-section h4 {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        #qrcode {
+            display: inline-block;
+            padding: 10px;
+            background: white;
+        }
+
+        #qrcode img {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .qr-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .qr-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .qr-btn:hover {
+            background: #5a6fd6;
+            transform: translateY(-1px);
+        }
+
+        .qr-btn.secondary {
+            background: #6c757d;
+        }
+
+        .qr-btn.secondary:hover {
+            background: #5a6268;
         }
     </style>
 </head>
@@ -214,18 +282,31 @@ function handleHomePage() {
         </form>
         
         <div id="result" class="result">
-            <h3>生成成功！</h3>
+            <h3>✅ 生成成功！</h3>
             <div class="short-link">
                 <span id="shortUrl"></span>
-                <button class="copy-btn" onclick="copyToClipboard()">复制</button>
+                <button class="copy-btn" onclick="copyToClipboard()">复制链接</button>
             </div>
-            <p>点击短链接访问原始内容</p>
+            
+            <!-- 二维码区域 -->
+            <div class="qr-section">
+                <h4>📱 扫码访问</h4>
+                <div id="qrcode"></div>
+                <div class="qr-actions">
+                    <button class="qr-btn" onclick="downloadQRCode()">⬇️ 下载二维码</button>
+                    <button class="qr-btn secondary" onclick="copyQRCode()">📋 复制图片</button>
+                </div>
+            </div>
+            
+            <p style="text-align: center; color: #666; margin-top: 15px; font-size: 14px;">
+                点击短链接访问原始内容
+            </p>
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
             <a href="/stats" style="color: #667eea; text-decoration: none;">📊 查看所有链接统计</a>
 
-            <a href="https://github.com/kinga-a/duanyu">
+            <a href="https://github.com/kinga-a/duanyu" style="margin-left: 15px; color: #333;">
             <svg height="16" viewBox="0 0 16 16" version="1.1" width="16" aria-hidden="true" fill="currentColor">
             <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
             </svg>
@@ -236,6 +317,9 @@ function handleHomePage() {
         <script>
             // 获取配置的域名路径
             const domainPath = window.location.pathname.split('/')[1] || 'u';
+            
+            // 存储二维码实例
+            let currentQRCode = null;
         </script>
     </div>
 
@@ -252,6 +336,11 @@ function handleHomePage() {
             
             loading.style.display = 'block';
             result.classList.remove('show');
+            
+            // 清除之前的二维码
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            currentQRCode = null;
             
             try {
                 const response = await fetch('/api/create', {
@@ -271,6 +360,10 @@ function handleHomePage() {
                 
                 if (data.success) {
                     document.getElementById('shortUrl').textContent = data.shortUrl;
+                    
+                    // 生成二维码
+                    generateQRCode(data.shortUrl);
+                    
                     result.classList.add('show');
                 } else {
                     alert('生成失败：' + data.error);
@@ -287,6 +380,91 @@ function handleHomePage() {
             navigator.clipboard.writeText(shortUrl).then(function() {
                 alert('已复制到剪贴板！');
             });
+        }
+        
+        // 生成二维码
+        function generateQRCode(url) {
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            currentQRCode = new QRCode(qrContainer, {
+                text: url,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        
+        // 下载二维码
+        function downloadQRCode() {
+            const qrCanvas = document.querySelector('#qrcode canvas');
+            if (!qrCanvas) {
+                alert('请先生成二维码');
+                return;
+            }
+            
+            // 创建白色背景的画布
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 240; // 包含边距
+            canvas.width = size;
+            canvas.height = size;
+            
+            // 填充白色背景
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            
+            // 绘制二维码（居中，带20px边距）
+            ctx.drawImage(qrCanvas, 20, 20);
+            
+            // 下载
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 复制二维码图片到剪贴板
+        async function copyQRCode() {
+            const qrCanvas = document.querySelector('#qrcode canvas');
+            if (!qrCanvas) {
+                alert('请先生成二维码');
+                return;
+            }
+            
+            try {
+                // 创建带白色背景的画布
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const size = 240;
+                canvas.width = size;
+                canvas.height = size;
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.drawImage(qrCanvas, 20, 20);
+                
+                // 转换为 blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                if (navigator.clipboard && window.ClipboardItem) {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    alert('二维码已复制到剪贴板！');
+                } else {
+                    // 降级方案：下载
+                    const link = document.createElement('a');
+                    link.download = 'qrcode.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请使用下载功能');
+            }
         }
     </script>
 </body>
