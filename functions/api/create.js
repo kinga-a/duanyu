@@ -94,11 +94,7 @@ export default async function onRequest(context) {
         };
 
         // 计算TTL
-        const expirationTtl = expiresAt ? Math.floor((new Date(expiresAt).getTime() - new Date().getTime()) / 1000) : undefined;
-
-        await LINKS_KV.put(shortCode, JSON.stringify(linkData), {
-            expirationTtl: expirationTtl
-        });
+        await LINKS_KV.put(shortCode, JSON.stringify(linkData));
 
         // 将短码添加到索引列表
         await addToIndex(env, shortCode);
