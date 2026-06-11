@@ -37,17 +37,34 @@ function isValidURL(string) {
     }
 }
 
-// 处理首页
+// 处理首页 - 全端自适应美化（修复二维码溢出）
 function handleHomePage() {
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🔗短链接生成器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary: #667eea;
+            --success: #4caf50;
+            --secondary: #6c757d;
+            --text-dark: #2d3748;
+            --text-gray: #718096;
+            --border-light: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-light: #f7fafc;
+            --bg-blue-light: #e3f2fd;
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+            --radius-lg: 20px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --transition: all 0.24s ease;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -55,102 +72,132 @@ function handleHomePage() {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--primary-gradient);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 20px;
+            padding: clamp(12px, 3vw, 24px);
         }
         
         .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 600px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: clamp(20px, 4vw, 40px);
+            box-shadow: var(--shadow-lg);
+            max-width: 640px;
             width: 100%;
+            margin-top: clamp(10px, 2vh, 40px);
         }
         
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
+            color: var(--text-dark);
+            margin-bottom: clamp(20px, 4vw, 30px);
+            font-size: clamp(1.8em, 6vw, 2.5em);
+            font-weight: 600;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: clamp(16px, 3vw, 20px);
         }
         
         label {
             display: block;
             margin-bottom: 8px;
-            color: #555;
+            color: #4a5568;
             font-weight: 500;
+            font-size: 15px;
         }
         
-        textarea, input[type="text"], select, input[type="password"] {
+        textarea, input[type="text"], select {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
+            padding: clamp(14px, 3vw, 16px);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
             font-size: 16px;
-            transition: border-color 0.3s;
+            transition: var(--transition);
+            background: #fbfcfe;
         }
         
-        input[type="checkbox"] {
-            width: auto;
-            padding: 0;
-            margin: 0;
+        textarea:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
         
         textarea {
-            min-height: 120px;
+            min-height: clamp(100px, 20vh, 120px);
             resize: vertical;
         }
         
-        textarea:focus, input[type="text"]:focus, select:focus, input[type="password"]:focus {
-            outline: none;
-            border-color: #667eea;
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+        .checkbox-desc {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-left: 26px;
+            margin-top: 4px;
+            line-height: 1.5;
         }
         
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
+            padding: clamp(14px, 3vw, 16px);
+            border-radius: var(--radius-md);
             font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
             width: 100%;
-            transition: transform 0.2s;
+            transition: var(--transition);
+            min-height: 50px;
         }
-        
         .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.25);
         }
+        .btn:active { transform: translateY(0); }
         
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            color: var(--text-gray);
+        }
+
         .result {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
+            margin-top: 24px;
+            padding: clamp(16px, 3vw, 24px);
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
             display: none;
         }
-        
-        .result.show {
-            display: block;
+        .result.show { display: block; }
+        .result h3 {
+            color: var(--success);
+            margin-bottom: 12px;
+            font-size: 1.2em;
         }
         
         .short-link {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
+            background: var(--bg-blue-light);
+            padding: clamp(12px, 2vw, 15px);
+            border-radius: var(--radius-sm);
             margin: 10px 0;
             word-break: break-all;
-            font-family: monospace;
+            font-family: ui-monospace, SFMono-Regular, monospace;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -159,48 +206,46 @@ function handleHomePage() {
         }
         
         .copy-btn {
-            background: #4caf50;
+            background: var(--success);
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             white-space: nowrap;
+            font-size: 14px;
+            transition: var(--transition);
+            min-height: 36px;
         }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 10px;
-        }
+        .copy-btn:hover { background: #388e3c; }
 
-        /* 二维码样式 */
+        /* 二维码区域 修复溢出 */
         .qr-section {
             margin-top: 20px;
             text-align: center;
-            padding: 20px;
+            padding: clamp(16px, 3vw, 20px);
             background: white;
-            border-radius: 10px;
-            border: 2px dashed #e1e5e9;
+            border-radius: var(--radius-md);
+            border: 2px dashed var(--border-light);
         }
-
         .qr-section h4 {
-            color: #555;
+            color: #4a5568;
             margin-bottom: 15px;
-            font-size: 1.1em;
+            font-size: clamp(1em, 3vw, 1.1em);
         }
-
         #qrcode {
             display: inline-block;
             padding: 10px;
             background: white;
+            max-width: 100%;
         }
-
-        #qrcode img {
+        #qrcode canvas, #qrcode img {
             display: block;
             margin: 0 auto;
+            max-width: calc(100% - 20px);
+            height: auto !important;
         }
-
+        
         .qr-actions {
             margin-top: 15px;
             display: flex;
@@ -208,32 +253,58 @@ function handleHomePage() {
             justify-content: center;
             flex-wrap: wrap;
         }
-
         .qr-btn {
-            background: #667eea;
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.2s;
+            transition: var(--transition);
             display: inline-flex;
             align-items: center;
             gap: 5px;
+            min-height: 40px;
         }
+        .qr-btn:hover { background: #5a6fd6; transform: translateY(-1px); }
+        .qr-btn.secondary { background: var(--secondary); }
+        .qr-btn.secondary:hover { background: #5a6268; }
 
-        .qr-btn:hover {
-            background: #5a6fd6;
-            transform: translateY(-1px);
+        .tip-text {
+            text-align: center;
+            color: var(--text-gray);
+            margin-top: 15px;
+            font-size: 14px;
         }
-
-        .qr-btn.secondary {
-            background: #6c757d;
+        
+        .footer-links {
+            text-align: center;
+            margin-top: 24px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
         }
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 15px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap:4px;
+        }
+        .footer-links a.github { color: #24292f; }
+        .footer-links a:hover { text-decoration: underline; }
 
-        .qr-btn.secondary:hover {
-            background: #5a6268;
+        /* 移动端小屏适配 */
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .container { border-radius: 16px; }
+            .qr-actions { gap:8px; }
+            .qr-btn { flex:1; max-width:140px; }
         }
     </style>
 </head>
@@ -265,13 +336,11 @@ function handleHomePage() {
             </div>
             
             <div class="form-group">
-                <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <input type="checkbox" id="rawDisplay" style="margin-right: 8px;">
-                    <label for="rawDisplay" style="margin: 0; cursor: pointer;">以文本显示</label>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="rawDisplay">
+                    <label for="rawDisplay" style="margin:0; cursor:pointer;">以文本显示</label>
                 </div>
-                <small style="display: block; color: #666; margin-left: 24px;">
-                   （文本内容可不勾选***url内容或者html/js代码以文本显示可勾选）
-                </small>
+                <div class="checkbox-desc">URL内容或者html/js代码勾选后直接展示文本，普通跳转链接可不勾选</div>
             </div>
             
             <button type="submit" class="btn">生成短链接</button>
@@ -288,7 +357,6 @@ function handleHomePage() {
                 <button class="copy-btn" onclick="copyToClipboard()">复制链接</button>
             </div>
             
-            <!-- 二维码区域 -->
             <div class="qr-section">
                 <h4>📱 扫码访问</h4>
                 <div id="qrcode"></div>
@@ -298,27 +366,20 @@ function handleHomePage() {
                 </div>
             </div>
             
-            <p style="text-align: center; color: #666; margin-top: 15px; font-size: 14px;">
-                点击短链接访问原始内容
-            </p>
+            <p class="tip-text">点击短链接访问原始内容</p>
         </div>
         
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="/stats" style="color: #667eea; text-decoration: none;">📊 查看所有链接统计</a>
-
-            <a href="https://github.com/kinga-a/duanyu" style="margin-left: 15px; color: #333;">
-            <svg height="16" viewBox="0 0 16 16" version="1.1" width="16" aria-hidden="true" fill="currentColor">
-            <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-            </svg>
+        <div class="footer-links">
+            <a href="/stats">📊 查看所有链接统计</a>
+            <a href="https://github.com/kinga-a/duanyu" class="github">
+                <svg height="16" viewBox="0 0 16 16" version="1.1" width="16" aria-hidden="true" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg> Github
             </a>
         </div>
 
-          
         <script>
-            // 获取配置的域名路径
             const domainPath = window.location.pathname.split('/')[1] || 'u';
-            
-            // 存储二维码实例
             let currentQRCode = null;
         </script>
     </div>
@@ -337,7 +398,6 @@ function handleHomePage() {
             loading.style.display = 'block';
             result.classList.remove('show');
             
-            // 清除之前的二维码
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = '';
             currentQRCode = null;
@@ -345,25 +405,13 @@ function handleHomePage() {
             try {
                 const response = await fetch('/api/create', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        content: content,
-                        customCode: customCode,
-                        expiration: expiration,
-                        rawDisplay: rawDisplay
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, customCode, expiration, rawDisplay })
                 });
-                
                 const data = await response.json();
-                
                 if (data.success) {
                     document.getElementById('shortUrl').textContent = data.shortUrl;
-                    
-                    // 生成二维码
                     generateQRCode(data.shortUrl);
-                    
                     result.classList.add('show');
                 } else {
                     alert('生成失败：' + data.error);
@@ -377,95 +425,72 @@ function handleHomePage() {
         
         function copyToClipboard() {
             const shortUrl = document.getElementById('shortUrl').textContent;
-            navigator.clipboard.writeText(shortUrl).then(function() {
-                alert('已复制到剪贴板！');
-            });
+            navigator.clipboard.writeText(shortUrl).then(() => alert('已复制到剪贴板！'));
         }
         
-        // 生成二维码
+        // 自适应二维码尺寸
         function generateQRCode(url) {
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = '';
-            
+            const qrSize = window.innerWidth > 640 ? 200 : 160;
             currentQRCode = new QRCode(qrContainer, {
                 text: url,
-                width: 200,
-                height: 200,
+                width: qrSize,
+                height: qrSize,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
             });
         }
         
-        // 下载二维码
         function downloadQRCode() {
             const qrCanvas = document.querySelector('#qrcode canvas');
-            if (!qrCanvas) {
-                alert('请先生成二维码');
-                return;
-            }
-            
-            // 创建白色背景的画布
+            if (!qrCanvas) return alert('请先生成二维码');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const size = 240; // 包含边距
-            canvas.width = size;
-            canvas.height = size;
-            
-            // 填充白色背景
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, size, size);
-            
-            // 绘制二维码（居中，带20px边距）
-            ctx.drawImage(qrCanvas, 20, 20);
-            
-            // 下载
+            const size = 240;
+            canvas.width = size; canvas.height = size;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0,0,size,size);
+            ctx.drawImage(qrCanvas,20,20);
             const link = document.createElement('a');
             link.download = 'qrcode.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
         }
         
-        // 复制二维码图片到剪贴板
         async function copyQRCode() {
             const qrCanvas = document.querySelector('#qrcode canvas');
-            if (!qrCanvas) {
-                alert('请先生成二维码');
-                return;
-            }
-            
+            if (!qrCanvas) return alert('请先生成二维码');
             try {
-                // 创建带白色背景的画布
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const size = 240;
-                canvas.width = size;
-                canvas.height = size;
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, size, size);
-                ctx.drawImage(qrCanvas, 20, 20);
-                
-                // 转换为 blob
+                canvas.width = size; canvas.height = size;
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0,0,size,size);
+                ctx.drawImage(qrCanvas,20,20);
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                
                 if (navigator.clipboard && window.ClipboardItem) {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]);
+                    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
                     alert('二维码已复制到剪贴板！');
                 } else {
-                    // 降级方案：下载
                     const link = document.createElement('a');
                     link.download = 'qrcode.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 }
             } catch (err) {
-                console.error('复制失败:', err);
                 alert('复制失败，请使用下载功能');
             }
         }
+
+        // 横竖屏切换重绘二维码
+        window.addEventListener('resize', () => {
+            if(currentQRCode && document.getElementById('shortUrl').textContent) {
+                generateQRCode(document.getElementById('shortUrl').textContent);
+            }
+        });
     </script>
 </body>
 </html>`;
@@ -475,152 +500,170 @@ function handleHomePage() {
     });
 }
 
-// 处理短链接访问
+// 处理短链接访问（已修复expirationTtl undefined报错）
 async function handleShortLink(request, env, shortCode) {
     try {
-        // 使用EdgeOne KV存储
         const linkDataStr = await LINKS_KV.get(shortCode);
-
-        if (!linkDataStr) {
-            return new Response('短链接未找到', { status: 404 });
-        }
-
+        if (!linkDataStr) return new Response('短链接未找到', { status: 404 });
         const linkData = JSON.parse(linkDataStr);
 
-        // 检查链接是否已过期
         if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
-            // 删除过期的链接
             await LINKS_KV.delete(shortCode);
-            await removeFromIndex(env, shortCode); // 同时从索引中移除
+            await removeFromIndex(env, shortCode);
             return new Response('此链接已过期并被移除', { status: 410 });
         }
 
-        // 增加点击计数
         linkData.clicks = (linkData.clicks || 0) + 1;
-        // 计算剩余TTL
-        const expirationTtl = linkData.expiresAt ? Math.floor((new Date(linkData.expiresAt).getTime() - new Date().getTime()) / 1000) : undefined;
-        await LINKS_KV.put(shortCode, JSON.stringify(linkData), {
-            expirationTtl: expirationTtl
-        });
 
-        // 如果是URL，则重定向
+        // ========== 修复关键点：不再传undefined给expirationTtl ==========
+        const putOpts = {};
+        if (linkData.expiresAt) {
+            const now = Date.now();
+            const expireTime = new Date(linkData.expiresAt).getTime();
+            const ttlSec = Math.floor((expireTime - now) / 1000);
+            if (ttlSec > 0) {
+                putOpts.expirationTtl = ttlSec;
+            }
+        }
+
+        await LINKS_KV.put(shortCode, JSON.stringify(linkData), putOpts);
+
         if (linkData.isUrl && !linkData.rawDisplay) {
             return Response.redirect(linkData.content, 302);
         }
-
-        // 如果是文本，检查显示模式
         if (linkData.rawDisplay) {
-            // 显示原始内容
-            return new Response(linkData.content, {
-                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-            });
+            return new Response(linkData.content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
         } else {
-            // 显示格式化内容页面
             return handleTextContent(linkData.content, shortCode, linkData.clicks);
         }
-
     } catch (error) {
         console.error('处理短链接错误:', error);
         return new Response('服务器错误', { status: 500 });
     }
 }
 
-// 显示文本内容页面
+// 文本展示页面 自适应优化
 function handleTextContent(content, shortCode, clicks) {
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>短链接内容</title>
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary: #667eea;
+            --success: #4caf50;
+            --green-btn: #28a745;
+            --text-dark: #2d3748;
+            --text-gray: #718096;
+            --bg-card: #ffffff;
+            --bg-light: #f7fafc;
+            --bg-blue-light: #e3f2fd;
+            --blue-text: #1976d2;
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+            --radius-lg: 20px;
+            --radius-md: 15px;
+            --radius-pill: 999px;
+            --transition: all 0.24s ease;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             min-height: 100vh;
-            padding: 20px;
+            padding: clamp(12px, 3vw, 24px);
         }
-        
         .container {
-            max-width: 800px;
+            max-width: 840px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: clamp(20px, 4vw, 40px);
+            box-shadow: var(--shadow-lg);
         }
-        
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: clamp(20px, 4vw, 30px);
         }
-        
         .header h1 {
-            color: #333;
+            color: var(--text-dark);
             margin-bottom: 10px;
+            font-size: clamp(1.6em, 5vw, 2em);
         }
-        
         .short-code {
-            background: #e3f2fd;
-            padding: 10px 20px;
-            border-radius: 25px;
+            background: var(--bg-blue-light);
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
             display: inline-block;
-            font-family: monospace;
-            color: #1976d2;
+            font-family: ui-monospace, monospace;
+            color: var(--blue-text);
+            font-size: clamp(14px, 2.5vw, 16px);
         }
-        
         .content {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 15px;
-            margin: 20px 0;
-            line-height: 1.6;
+            background: var(--bg-light);
+            padding: clamp(20px, 3vw, 30px);
+            border-radius: var(--radius-md);
+            margin: clamp(16px, 3vw, 20px) 0;
+            line-height: 1.7;
             white-space: pre-wrap;
             word-wrap: break-word;
-            font-size: 16px;
+            font-size: clamp(15px, 2.5vw, 16px);
+            color: var(--text-dark);
         }
-        
         .stats {
             text-align: center;
-            color: #666;
-            margin-top: 20px;
+            color: var(--text-gray);
+            margin-top: 10px;
+            font-size: 15px;
         }
-        
         .actions {
             text-align: center;
-            margin-top: 30px;
+            margin-top: clamp(20px, 4vw, 30px);
+            display: flex;
+            gap: clamp(8px, 2vw, 12px);
+            justify-content: center;
+            flex-wrap: wrap;
         }
-        
+        .btn, .copy-btn {
+            border: none;
+            padding: clamp(12px, 2vw, 14px) clamp(20px, 3vw, 24px);
+            border-radius: var(--radius-pill);
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 46px;
+            flex: 1;
+            max-width: 220px;
+        }
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
             text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            display: inline-block;
-            margin: 0 10px;
-            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
+        .btn.green { background: var(--green-btn); }
         .copy-btn {
-            background: #4caf50;
-            border: none;
+            background: var(--success);
             color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 0 10px;
+        }
+        .btn:hover, .copy-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        .btn:active, .copy-btn:active { transform: translateY(0); }
+
+        @media (max-width: 640px) {
+            body { padding:10px; }
+            .container { border-radius:16px; }
+            .actions { gap:8px; }
+            .btn, .copy-btn { flex:1 1 110px; max-width:unset; }
         }
     </style>
 </head>
@@ -640,16 +683,14 @@ function handleTextContent(content, shortCode, clicks) {
         <div class="actions">
             <button class="copy-btn" onclick="copyContent()">复制内容</button>
             <a href="/u" class="btn">创建新短链接</a>
-            <a href="/stats" class="btn" style="background: #28a745;">查看所有链接统计</a>
+            <a href="/stats" class="btn green">查看链接统计</a>
         </div>
     </div>
 
     <script>
         function copyContent() {
-            const content = \`${content.replace(/\\/g, '\\\\').replace(/\`/g, '\\`')}\`;
-            navigator.clipboard.writeText(content).then(function() {
-                alert('内容已复制到剪贴板！');
-            });
+            const rawContent = \`${content.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`;
+            navigator.clipboard.writeText(rawContent).then(() => alert('内容已复制到剪贴板！'));
         }
     </script>
 </body>
@@ -663,13 +704,8 @@ function handleTextContent(content, shortCode, clicks) {
 // 从索引中移除短码
 async function removeFromIndex(env, shortCode) {
     try {
-        // 获取现有索引
         let index = await LINKS_KV.get('__index__', 'json');
-        if (!index) {
-            index = [];
-        }
-        
-        // 移除指定短码
+        if (!index) index = [];
         index = index.filter(code => code !== shortCode);
         await env.LINKS_KV.put('__index__', JSON.stringify(index));
     } catch (error) {
