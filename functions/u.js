@@ -516,17 +516,7 @@ async function handleShortLink(request, env, shortCode) {
         linkData.clicks = (linkData.clicks || 0) + 1;
 
         // ========== 修复关键点：不再传undefined给expirationTtl ==========
-        const putOpts = {};
-        if (linkData.expiresAt) {
-            const now = Date.now();
-            const expireTime = new Date(linkData.expiresAt).getTime();
-            const ttlSec = Math.floor((expireTime - now) / 1000);
-            if (ttlSec > 0) {
-                putOpts.expirationTtl = ttlSec;
-            }
-        }
-
-        await LINKS_KV.put(shortCode, JSON.stringify(linkData), putOpts);
+        await LINKS_KV.put(shortCode, JSON.stringify(linkData));
 
         if (linkData.isUrl && !linkData.rawDisplay) {
             return Response.redirect(linkData.content, 302);
@@ -707,7 +697,7 @@ async function removeFromIndex(env, shortCode) {
         let index = await LINKS_KV.get('__index__', 'json');
         if (!index) index = [];
         index = index.filter(code => code !== shortCode);
-        await env.LINKS_KV.put('__index__', JSON.stringify(index));
+        await LINKS_KV.put('__index__', JSON.stringify(index));
     } catch (error) {
         console.error('移除索引失败:', error);
     }
