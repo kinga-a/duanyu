@@ -12,28 +12,16 @@ export default async function onRequest(context) {
     }
 }
 
-// 显示验证页面 - 优化自适应UI
+// 显示验证页面
 function showValidationPage() {
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>验证访问权限</title>
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --primary: #667eea;
-            --danger: #f44336;
-            --text-dark: #2d3748;
-            --text-gray: #718096;
-            --border-light: #e2e8f0;
-            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
-            --radius-lg: 20px;
-            --radius-md: 10px;
-            --transition: all 0.24s ease;
-        }
         * {
             margin: 0;
             padding: 0;
@@ -41,128 +29,107 @@ function showValidationPage() {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: var(--primary-gradient);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 20px;
         }
         
         .container {
-            background: #ffffff;
-            border-radius: var(--radius-lg);
-            padding: clamp(24px, 5vw, 40px);
-            box-shadow: var(--shadow-lg);
-            max-width: 520px;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
             width: 100%;
             text-align: center;
         }
         
         h1 {
-            color: var(--text-dark);
-            margin-bottom: 16px;
-            font-size: clamp(1.8em, 6vw, 2.5em);
-            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
         }
         
-        .desc {
-            color: var(--text-gray);
-            margin-bottom: 28px;
-            font-size: clamp(15px, 3vw, 16px);
-            line-height: 1.7;
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
         }
         
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
         
         label {
             display: block;
             margin-bottom: 8px;
-            color: #4a5568;
+            color: #555;
             font-weight: 500;
-            font-size: 15px;
         }
         
         input[type="password"] {
             width: 100%;
-            padding: clamp(14px, 3vw, 16px);
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-md);
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
             font-size: 16px;
-            transition: var(--transition);
-            background: #fbfcfe;
+            transition: border-color 0.3s;
         }
         
         input[type="password"]:focus {
             outline: none;
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
         }
         
         .btn {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: clamp(14px, 3vw, 16px);
-            border-radius: var(--radius-md);
+            padding: 15px 30px;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: 500;
             cursor: pointer;
             width: 100%;
-            transition: var(--transition);
-            min-height: 50px;
+            transition: transform 0.2s;
         }
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.25);
-        }
-        .btn:active {
-            transform: translateY(0);
         }
         
         .error-message {
-            color: var(--danger);
-            margin-top: 12px;
+            color: #f44336;
+            margin-top: 10px;
             display: none;
-            font-size: 14px;
         }
         
         .back-link {
-            margin-top: 24px;
+            margin-top: 20px;
         }
         
         .back-link a {
-            color: var(--primary);
+            color: #667eea;
             text-decoration: none;
-            font-size: 15px;
-            transition: var(--transition);
         }
         
         .back-link a:hover {
             text-decoration: underline;
-        }
-
-        /* 平板/手机适配 */
-        @media (max-width: 768px) {
-            body { padding: 12px; }
-            .container { border-radius: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔒 验证访问权限</h1>
-        <p class="desc">请输入验证密码以查看统计信息</p>       
+        <p>请输入验证密码以查看统计信息</p>       
         <form id="validationForm">
             <div class="form-group">
                 <label for="password">验证密码：</label>
-                <input type="password" id="password" placeholder="请输入验证密码" required autocomplete="off">
+                <input type="password" id="password" placeholder="请输入验证密码" required>
             </div>
             
             <button type="submit" class="btn">验证并进入</button>
@@ -196,12 +163,15 @@ function showValidationPage() {
                 });
                 
                 if (response.status === 200) {
+                    // 验证成功，重定向到统计页面
                     window.location.href = '/stats';
                 } else if (response.status === 401) {
+                    // 验证失败，显示错误信息
                     errorMessage.style.display = 'block';
                     document.getElementById('password').value = '';
                     document.getElementById('password').focus();
                 } else {
+                    // 其他错误
                     errorMessage.textContent = '网络错误，请重试';
                     errorMessage.style.display = 'block';
                 }
@@ -219,36 +189,44 @@ function showValidationPage() {
     });
 }
 
-// 处理统计页面 - 全端自适应优化版
+// 处理统计页面 - 显示所有链接信息
 async function handleStatsPage(env) {
     try {
+        // 获取索引列表
         let index = await LINKS_KV.get('__index__', 'json');
-        if (!index) index = [];
+        if (!index) {
+            index = [];
+        }
 
+        // 过滤掉不存在的链接并收集链接数据
         const links = [];
-        const processedIndex = [];
+        const processedIndex = []; // 用于过滤不存在的链接
         
         for (const shortCode of index) {
             const linkDataStr = await LINKS_KV.get(shortCode);
-            if (!linkDataStr) continue;
-            const linkData = JSON.parse(linkDataStr);
-            
-            if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
-                await LINKS_KV.delete(shortCode);
-                continue;
+            if (linkDataStr) {
+                const linkData = JSON.parse(linkDataStr);
+                
+                // 检查链接是否已过期
+                if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
+                    // 删除过期的链接
+                    await LINKS_KV.delete(shortCode);
+                    continue; // 跳过此链接
+                }
+                
+                links.push({
+                    shortCode: shortCode,
+                    content: linkData.content,
+                    isUrl: linkData.isUrl,
+                    clicks: linkData.clicks || 0,
+                    createdAt: linkData.createdAt,
+                    expiresAt: linkData.expiresAt
+                });
+                processedIndex.push(shortCode);
             }
-            
-            links.push({
-                shortCode: shortCode,
-                content: linkData.content,
-                isUrl: linkData.isUrl,
-                clicks: linkData.clicks || 0,
-                createdAt: linkData.createdAt,
-                expiresAt: linkData.expiresAt
-            });
-            processedIndex.push(shortCode);
         }
         
+        // 更新索引，移除不存在的链接
         await LINKS_KV.put('__index__', JSON.stringify(processedIndex));
 
         const html = `
@@ -256,24 +234,9 @@ async function handleStatsPage(env) {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>所有链接统计</title>
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --primary: #667eea;
-            --danger: #f44336;
-            --warning-gradient: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            --text-dark: #2d3748;
-            --text-gray: #718096;
-            --border-light: #e2e8f0;
-            --bg-light: #f7fafc;
-            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
-            --radius-lg: 20px;
-            --radius-md: 10px;
-            --radius-sm: 6px;
-            --transition: all 0.24s ease;
-        }
         * {
             margin: 0;
             padding: 0;
@@ -282,115 +245,114 @@ async function handleStatsPage(env) {
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: clamp(12px, 3vw, 24px);
+            padding: 20px;
         }
         
         .container {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
-            border-radius: var(--radius-lg);
-            padding: clamp(20px, 4vw, 40px);
-            box-shadow: var(--shadow-lg);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         
         h1 {
             text-align: center;
-            color: var(--text-dark);
-            margin-bottom: clamp(20px, 4vw, 30px);
-            font-size: clamp(1.6em, 5vw, 2.5em);
-            font-weight: 600;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
         }
         
         .controls {
             display: flex;
-            gap: 12px;
-            margin-bottom: clamp(16px, 3vw, 30px);
-            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
         }
         
-        .btn, .logout-btn {
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: clamp(12px, 2.5vw, 14px) clamp(16px, 3vw, 22px);
-            border-radius: var(--radius-md);
-            font-size: clamp(15px, 2.5vw, 16px);
-            font-weight: 500;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 16px;
             cursor: pointer;
-            transition: var(--transition);
-            min-height: 48px;
-            flex: 1;
-            max-width: 200px;
+            transition: transform 0.2s;
         }
-        .btn { background: var(--primary-gradient); }
-        .logout-btn { background: var(--warning-gradient); }
         
-        .btn:hover, .logout-btn:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(0,0,0,0.15);
         }
-        .btn:active, .logout-btn:active { transform: translateY(0); }
         
+        /* 新增：限制表格容器 */
         .table-container {
-            overflow-x: auto;
-            border-radius: var(--radius-md);
-            margin-top: 10px;
-            -webkit-overflow-scrolling: touch; /* 苹果平滑滚动 */
+            overflow-x: auto; /* 关键：允许水平滚动 */
+            border-radius: 10px; /* 保持圆角 */
+            margin-top: 20px; /* 与上方控件间距 */
         }
         
         table {
-            width: 100%;
-            min-width: 720px;
+            width: 100%; /* 表格宽度占满容器 */
+            min-width: 600px; /* 设置最小宽度，确保在内容多时不会压缩太小 */
             border-collapse: collapse;
         }
         
         th, td {
-            padding: clamp(10px, 2vw, 15px);
+            padding: 15px;
             text-align: left;
-            border-bottom: 1px solid var(--border-light);
-            font-size: clamp(14px, 2vw, 15px);
+            border-bottom: 1px solid #ddd;
         }
         
         th {
-            background-color: var(--bg-light);
+            background-color: #f5f5f5;
             font-weight: 600;
-            color: var(--text-dark);
-            white-space: nowrap;
         }
         
-        tbody tr:hover {
-            background-color: #f8f9fd;
+        tr:hover {
+            background-color: #f9f9f9;
         }
         
         .delete-btn {
-            background: var(--danger);
+            background: #f44336;
             color: white;
             border: none;
             padding: 8px 12px;
-            border-radius: var(--radius-sm);
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
-            min-height: 36px;
-            transition: var(--transition);
         }
-        .delete-btn:hover { background: #d32f2f; }
-        .delete-btn:active { transform: scale(0.96); }
+        
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
         
         .loading {
             text-align: center;
-            padding: 30px;
-            color: var(--text-gray);
+            padding: 20px;
             display: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
         }
         
         .empty-message {
             text-align: center;
-            padding: 50px 20px;
-            color: var(--text-gray);
+            padding: 40px;
+            color: #666;
             font-style: italic;
-            font-size: 16px;
         }
         
         .full-url {
@@ -399,22 +361,19 @@ async function handleStatsPage(env) {
             display: inline-block;
         }
         
-        .back-link {
-            text-align: center;
-            margin-top: 24px;
+        .logout-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
-        .back-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-size: 15px;
-        }
-        .back-link a:hover { text-decoration: underline; }
-
-        /* 手机小屏深度适配 */
-        @media (max-width: 640px) {
-            .controls { gap: 8px; }
-            .btn, .logout-btn { flex: 1 1 120px; max-width: unset; }
-            .container { border-radius: 16px; }
+        
+        .logout-btn:hover {
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -428,19 +387,20 @@ async function handleStatsPage(env) {
         </div>
         
         <div class="loading" id="loading">
-            <p>正在加载链接数据...</p>
+            <p>正在加载链接...</p>
         </div>
         
+        <!-- 将表格包装在一个容器中 -->
         <div class="table-container">
         ` + (links.length === 0 ? 
-        `<div class="empty-message">暂无短链接数据</div>` : 
+        `<div class="empty-message">暂无链接数据</div>` : 
         `<table id="linksTable">
             <thead>
                 <tr>
                     <th>短码</th>
                     <th>内容预览</th>
                     <th>类型</th>
-                    <th>点击</th>
+                    <th>点击次数</th>
                     <th>创建时间</th>
                     <th>过期时间</th>
                     <th>操作</th>
@@ -448,24 +408,34 @@ async function handleStatsPage(env) {
             </thead>
             <tbody id="linksList">
                 ` + links.map(link => {
+                    // 使用 toLocaleString 并指定时区
                     const expiresAt = link.expiresAt ? new Date(link.expiresAt).toLocaleString('zh-CN', { 
                       timeZone: 'Asia/Shanghai',
-                      year: 'numeric', month: '2-digit', day: '2-digit',
-                      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+                      year: 'numeric', 
+                      month: '2-digit', 
+                      day: '2-digit', 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      second: '2-digit',
+                      hour12: false 
                     }) : '永不';
                     const createdAt = new Date(link.createdAt).toLocaleString('zh-CN', { 
                       timeZone: 'Asia/Shanghai',
-                      year: 'numeric', month: '2-digit', day: '2-digit',
-                      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+                      year: 'numeric', 
+                      month: '2-digit', 
+                      day: '2-digit', 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      second: '2-digit',
+                      hour12: false 
                     });
                     const isExpired = link.expiresAt && new Date(link.expiresAt) < new Date();
-                    const expiredClass = isExpired ? 'style="color: #d32f2f; font-weight:500;"' : '';
-                    const previewText = link.content.length > 50 ? link.content.substring(0, 50) + '...' : link.content;
+                    const expiredClass = isExpired ? 'style="color: red;"' : '';
                     
                     return `<tr>
                         <td>${link.shortCode}</td>
                         <td title="${link.content.replace(/"/g, '&quot;')}">
-                            <div class="full-url">${previewText}</div>
+                            <div class="full-url">${link.content.substring(0, 50) + (link.content.length > 50 ? '...' : '')}</div>
                         </td>
                         <td>${link.isUrl ? '网址' : '文本'}</td>
                         <td>${link.clicks}</td>
@@ -478,7 +448,7 @@ async function handleStatsPage(env) {
                 }).join('') + `
             </tbody>
         </table>`) + `
-        </div>
+        </div> <!-- 结束 table-container -->
         
         <div class="back-link">
             <a href="/u" id="backToGenerator">← 返回生成器</a>
@@ -486,23 +456,30 @@ async function handleStatsPage(env) {
     </div>
 
     <script>
+        // 获取配置的域名路径
         const domainPath = window.location.pathname.split('/')[1] || 'u';
-
+        
+        // 设置返回首页的链接
+        document.getElementById('backToHome').href = '/' + domainPath;
+        document.getElementById('backToGenerator').href = '/' + domainPath;
+        
         async function loadLinks() {
-            const loadingEl = document.getElementById('loading');
-            loadingEl.style.display = 'block';
             window.location.reload();
         }
         
         async function deleteLink(shortCode, event) {
+            // 阻止事件冒泡，防止在移动端触发其他行为
             event.stopPropagation();
             event.preventDefault();
             
-            if (!confirm('确定删除该短链接？删除后无法恢复')) return;
+            if (!confirm('您确定要删除此链接吗？')) {
+                return;
+            }
             
+            // 显示加载状态
             const button = event.target;
             const originalText = button.textContent;
-            button.textContent = '删除中';
+            button.textContent = '删除中...';
             button.disabled = true;
             
             try {
@@ -510,63 +487,92 @@ async function handleStatsPage(env) {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest' // 添加请求头标识
                     }
                 });
                 
-                let data = { success: false };
-                try { data = await response.json(); } catch {}
-                if (response.ok && data.success !== false) {
-                    alert('删除成功');
-                    loadLinks();
+                // 尝试获取响应数据
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    // 如果无法解析JSON，则创建默认响应对象
+                    if (response.ok) {
+                        data = { success: true };
+                    } else {
+                        data = { success: false, error: '服务器响应无效' };
+                    }
+                }
+                
+                if (data.success) {
+                    // 删除成功，提示用户并刷新页面
+                    alert('链接删除成功');
+                    loadLinks(); // 刷新页面
                 } else {
-                    throw new Error(data.error || '服务器操作失败');
+                    throw new Error(data.error || '未知错误');
                 }
             } catch (error) {
-                console.error('删除失败:', error);
-                alert('删除失败：' + error.message);
+                console.error('删除链接错误:', error);
+                alert('删除链接失败：' + error.message);
             } finally {
+                // 恢复按钮状态
                 button.textContent = originalText;
                 button.disabled = false;
             }
         }
         
         async function logout() {
-            if (!confirm('退出后需要重新输入密码验证，确认退出？')) return;
+            // 显示确认对话框
+            if (!confirm('您确定要退出验证吗？下次访问统计页面需要重新验证。')) {
+                return;
+            }
             
             try {
-                const res = await fetch('/logout', {
+                // 通过发送请求到服务器端点来清除cookie
+                const response = await fetch('/logout', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                if (res.ok) {
+                
+                // 如果服务器返回重定向状态，则手动重定向
+                if (response.status === 302 || response.status === 200) {
+                    // 重定向到首页
                     window.location.href = '/' + domainPath;
-                    return;
+                } else {
+                    // 如果响应不是预期的状态，尝试手动清除cookie并重定向
+                    clearCookieAndRedirect();
                 }
-            } catch (err) {
-                console.warn('登出接口请求失败，手动清除Cookie');
+            } catch (error) {
+                console.error('退出验证错误:', error);
+                // 如果网络请求失败，仍然尝试手动清除cookie并重定向
+                clearCookieAndRedirect();
             }
-            clearCookieAndRedirect();
         }
         
+        // 辅助函数：手动清除cookie并重定向
         function clearCookieAndRedirect() {
+            // 手动清除验证cookie
             document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
             document.cookie = "validated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + window.location.hostname;
+            
+            // 重定向到首页
+            const domainPath = window.location.pathname.split('/')[1] || 'u';
             window.location.href = '/' + domainPath;
         }
         
+        // 为所有删除按钮添加触摸事件处理，防止移动端误触
         document.addEventListener('DOMContentLoaded', function() {
-            // 修复旧代码里不存在的backToHome元素赋值
-            const generatorLink = document.getElementById('backToGenerator');
-            if(generatorLink) generatorLink.href = '/' + domainPath;
-
-            // 移动端触摸优化
-            document.querySelectorAll('.delete-btn, .btn, .logout-btn').forEach(btn => {
-                btn.addEventListener('touchstart', e => e.preventDefault(), { passive:false });
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                // 添加触摸开始事件
+                button.addEventListener('touchstart', function(e) {
+                    // 防止默认的触摸行为
+                    e.preventDefault();
+                });
             });
         });
     </script>
@@ -578,6 +584,6 @@ async function handleStatsPage(env) {
         });
     } catch (error) {
         console.error('统计页面错误:', error);
-        return new Response('服务器内部错误', { status: 500 });
+        return new Response('服务器错误', { status: 500 });
     }
 }
