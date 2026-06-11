@@ -38,6 +38,7 @@ function isValidURL(string) {
 }
 
 // 处理首页 - 全端自适应美化
+// 处理首页 - 全端自适应美化（修复二维码溢出）
 function handleHomePage() {
     const html = `
 <!DOCTYPE html>
@@ -219,7 +220,7 @@ function handleHomePage() {
         }
         .copy-btn:hover { background: #388e3c; }
 
-        /* 二维码区域 */
+        /* 二维码区域 修复溢出 */
         .qr-section {
             margin-top: 20px;
             text-align: center;
@@ -237,8 +238,14 @@ function handleHomePage() {
             display: inline-block;
             padding: 10px;
             background: white;
+            max-width: 100%;
         }
-        #qrcode img { display: block; margin: 0 auto; max-width: 100%; }
+        #qrcode canvas, #qrcode img {
+            display: block;
+            margin: 0 auto;
+            max-width: calc(100% - 20px);
+            height: auto !important;
+        }
         
         .qr-actions {
             margin-top: 15px;
@@ -422,13 +429,16 @@ function handleHomePage() {
             navigator.clipboard.writeText(shortUrl).then(() => alert('已复制到剪贴板！'));
         }
         
+        // 修复：自适应二维码尺寸
         function generateQRCode(url) {
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = '';
+            // 判断屏幕宽度分配尺寸
+            const qrSize = window.innerWidth > 640 ? 200 : 160;
             currentQRCode = new QRCode(qrContainer, {
                 text: url,
-                width: 200,
-                height: 200,
+                width: qrSize,
+                height: qrSize,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
@@ -483,206 +493,4 @@ function handleHomePage() {
     return new Response(html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
-}
-
-// 处理短链接访问
-async function handleShortLink(request, env, shortCode) {
-    try {
-        const linkDataStr = await LINKS_KV.get(shortCode);
-        if (!linkDataStr) return new Response('短链接未找到', { status: 404 });
-        const linkData = JSON.parse(linkDataStr);
-
-        if (linkData.expiresAt && new Date(linkData.expiresAt) < new Date()) {
-            await LINKS_KV.delete(shortCode);
-            await removeFromIndex(env, shortCode);
-            return new Response('此链接已过期并被移除', { status: 410 });
-        }
-
-        linkData.clicks = (linkData.clicks || 0) + 1;
-        const expirationTtl = linkData.expiresAt ? Math.floor((new Date(linkData.expiresAt).getTime() - Date.now()) / 1000) : undefined;
-        await LINKS_KV.put(shortCode, JSON.stringify(linkData), { expirationTtl });
-
-        if (linkData.isUrl && !linkData.rawDisplay) {
-            return Response.redirect(linkData.content, 302);
-        }
-        if (linkData.rawDisplay) {
-            return new Response(linkData.content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-        } else {
-            return handleTextContent(linkData.content, shortCode, linkData.clicks);
-        }
-    } catch (error) {
-        console.error('处理短链接错误:', error);
-        return new Response('服务器错误', { status: 500 });
-    }
-}
-
-// 文本展示页面 自适应优化
-function handleTextContent(content, shortCode, clicks) {
-    const html = `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短链接内容</title>
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --primary: #667eea;
-            --success: #4caf50;
-            --green-btn: #28a745;
-            --text-dark: #2d3748;
-            --text-gray: #718096;
-            --bg-card: #ffffff;
-            --bg-light: #f7fafc;
-            --bg-blue-light: #e3f2fd;
-            --blue-text: #1976d2;
-            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
-            --radius-lg: 20px;
-            --radius-md: 15px;
-            --radius-pill: 999px;
-            --transition: all 0.24s ease;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--primary-gradient);
-            min-height: 100vh;
-            padding: clamp(12px, 3vw, 24px);
-        }
-        .container {
-            max-width: 840px;
-            margin: 0 auto;
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: clamp(20px, 4vw, 40px);
-            box-shadow: var(--shadow-lg);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: clamp(20px, 4vw, 30px);
-        }
-        .header h1 {
-            color: var(--text-dark);
-            margin-bottom: 10px;
-            font-size: clamp(1.6em, 5vw, 2em);
-        }
-        .short-code {
-            background: var(--bg-blue-light);
-            padding: 8px 20px;
-            border-radius: var(--radius-pill);
-            display: inline-block;
-            font-family: ui-monospace, monospace;
-            color: var(--blue-text);
-            font-size: clamp(14px, 2.5vw, 16px);
-        }
-        .content {
-            background: var(--bg-light);
-            padding: clamp(20px, 3vw, 30px);
-            border-radius: var(--radius-md);
-            margin: clamp(16px, 3vw, 20px) 0;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: clamp(15px, 2.5vw, 16px);
-            color: var(--text-dark);
-        }
-        .stats {
-            text-align: center;
-            color: var(--text-gray);
-            margin-top: 10px;
-            font-size: 15px;
-        }
-        .actions {
-            text-align: center;
-            margin-top: clamp(20px, 4vw, 30px);
-            display: flex;
-            gap: clamp(8px, 2vw, 12px);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn, .copy-btn {
-            border: none;
-            padding: clamp(12px, 2vw, 14px) clamp(20px, 3vw, 24px);
-            border-radius: var(--radius-pill);
-            font-size: clamp(14px, 2.5vw, 16px);
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            min-height: 46px;
-            flex: 1;
-            max-width: 220px;
-        }
-        .btn {
-            background: var(--primary-gradient);
-            color: white;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn.green { background: var(--green-btn); }
-        .copy-btn {
-            background: var(--success);
-            color: white;
-        }
-        .btn:hover, .copy-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
-        .btn:active, .copy-btn:active { transform: translateY(0); }
-
-        @media (max-width: 640px) {
-            body { padding:10px; }
-            .container { border-radius:16px; }
-            .actions { gap:8px; }
-            .btn, .copy-btn { flex:1 1 110px; max-width:unset; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📄 短链接内容</h1>
-            <div class="short-code">${shortCode}</div>
-        </div>
-        
-        <div class="content">${content}</div>
-        
-        <div class="stats">
-            <p>👀 访问次数：${clicks}</p>
-        </div>
-        
-        <div class="actions">
-            <button class="copy-btn" onclick="copyContent()">复制内容</button>
-            <a href="/u" class="btn">创建新短链接</a>
-            <a href="/stats" class="btn green">查看链接统计</a>
-        </div>
-    </div>
-
-    <script>
-        function copyContent() {
-            const rawContent = \`${content.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`;
-            navigator.clipboard.writeText(rawContent).then(() => alert('内容已复制到剪贴板！'));
-        }
-    </script>
-</body>
-</html>`;
-    
-    return new Response(html, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
-}
-
-// 从索引中移除短码
-async function removeFromIndex(env, shortCode) {
-    try {
-        let index = await LINKS_KV.get('__index__', 'json');
-        if (!index) index = [];
-        index = index.filter(code => code !== shortCode);
-        await env.LINKS_KV.put('__index__', JSON.stringify(index));
-    } catch (error) {
-        console.error('移除索引失败:', error);
-    }
 }
