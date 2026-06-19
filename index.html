@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>短链接管理</title>
+  <style>
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-input: #334155;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-green: #10b981;
+  --accent-red: #ef4444;
+  --accent-orange: #f59e0b;
+  --tag-url-bg: rgba(59, 130, 246, 0.2);
+  --tag-url-text: #60a5fa;
+  --tag-text-bg: rgba(16, 185, 129, 0.2);
+  --tag-text-text: #34d399;
+  --tag-expired-bg: rgba(239, 68, 68, 0.2);
+  --tag-expired-text: #ef4444;
+  --tag-active-bg: rgba(16, 185, 129, 0.2);
+  --tag-active-text: #34d399;
+  --shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  --hover-bg: #334155;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --accent-blue: #2563eb;
+  --accent-purple: #7c3aed;
+  --accent-green: #059669;
+  --accent-red: #dc2626;
+  --accent-orange: #d97706;
+  --tag-url-bg: rgba(37, 99, 235, 0.1);
+  --tag-url-text: #2563eb;
+  --tag-text-bg: rgba(5, 150, 105, 0.1);
+  --tag-text-text: #059669;
+  --tag-expired-bg: rgba(220, 38, 38, 0.1);
+  --tag-expired-text: #dc2626;
+  --tag-active-bg: rgba(5, 150, 105, 0.1);
+  --tag-active-text: #059669;
+  --shadow: 0 10px 30px -10px rgba(0,0,0,0.15);
+  --hover-bg: #f1f5f9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* ===== 登录页 ===== */
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+.login-box {
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+.login-box h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+.login-box p { color: var(--text-secondary); margin-bottom: 24px; }
+input, select, textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-blue);
+}
+button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+button:hover { opacity: 0.9; }
+button:active { transform: scale(0.98); }
+.error-msg {
+  color: var(--accent-red);
+  font-size: 14px;
+  margin-top: -8px;
+  margin-bottom: 12px;
+  display: none;
+}
+.error-msg.show { display: block; }
+
+/* ===== 面板 ===== */
+.panel { display: none; }
+.panel.active { display: block; }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.header h1 { font-size: 24px; }
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.theme-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+.theme-btn:hover { background: var(--hover-bg); transform: scale(1.1); }
+
+/* ===== 导航标签 ===== */
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.nav-tab {
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.nav-tab:hover { background: var(--hover-bg); }
+.nav-tab.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #fff;
+}
+
+/* ===== 表单 ===== */
+.form-card {
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.type-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.type-option {
+  flex: 1;
+  padding: 16px;
+  background: var(--bg-input);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+.type-option:hover { background: var(--hover-bg); }
+.type-option.active {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+.type-option .icon { font-size: 24px; margin-bottom: 4px; }
+.type-option .label { font-size: 14px; font-weight: 500; }
+
+/* ===== 有效期选择 ===== */
+.expire-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.expire-option {
+  padding: 8px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+.expire-option:hover { background: var(--hover-bg); }
+.expire-option.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #fff;
+}
+.expire-custom {
+  display: none;
+  margin-top: 8px;
+}
+.expire-custom.show { display: block; }
+
+/* ===== 创建结果 ===== */
+.result-box {
+  background: var(--bg-input);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid var(--border-color);
+  display: none;
+}
+.result-box.show { display: block; }
+.result-box h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+.result-link {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.result-link input {
+  flex: 1;
+  margin-bottom: 0;
+  font-family: monospace;
+  font-size: 14px;
+}
+.qr-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.qr-container canvas { display: block; }
+
+/* ===== 搜索 ===== */
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.search-box input {
+  flex: 1;
+  margin-bottom: 0;
+}
+.search-box button {
+  width: auto;
+  padding: 12px 20px;
+}
+
+/* ===== 通用标签 ===== */
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag-url { background: var(--tag-url-bg); color: var(--tag-url-text); }
+.tag-text { background: var(--tag-text-bg); color: var(--tag-text-text); }
+.tag-expired { background: var(--tag-expired-bg); color: var(--tag-expired-text); }
+.tag-active { background: var(--tag-active-bg); color: var(--tag-active-text); }
+.short-code {
+  font-family: 'Courier New', monospace;
+  background: var(--bg-input);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--accent-blue);
+}
+
+/* ===== 按钮 ===== */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  width: auto;
+  border-radius: 6px;
+}
+.btn-danger { background: var(--accent-red); }
+.btn-secondary { background: var(--text-muted); }
+.btn-copy { background: var(--accent-green); }
+.btn-qr { background: var(--accent-orange); }
+
+/* ===== 空状态 ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+
+/* ===== 统计 ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg-card);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+.stat-card .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.stat-card .value { font-size: 32px; font-weight: 700; color: var(--text-primary); }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  background: var(--accent-green);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 1000;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.error { background: var(--accent-red); }
+
+/* ===== 模态框 ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-card);
+  padding: 32px;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+.modal h2 { margin-bottom: 20px; color: var(--text-primary); }
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.modal-actions button { flex: 1; }
+
+.text-preview {
+  background: var(--bg-primary);
+  padding: 16px;
+  border-radius: 8px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.6;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.qr-modal .modal {
+  max-width: 400px;
+  text-align: center;
+}
+.qr-modal .qr-display {
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  display: inline-block;
+  margin: 16px 0;
+}
+.qr-modal .qr-link {
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+
+/* ===== 桌面端表格 ===== */
+.links-table-desktop {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+.links-table-desktop th, .links-table-desktop td {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 14px;
+}
+.links-table-desktop th {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.links-table-desktop tr { border-bottom: 1px solid var(--border-color); }
+.links-table-desktop tr:last-child { border-bottom: none; }
+.links-table-desktop td { color: var(--text-primary); }
+
+/* ===== 手机端卡片（默认隐藏） ===== */
+.links-cards-mobile {
+  display: none;
+}
+.link-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+.link-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+.link-card-code {
+  font-family: 'Courier New', monospace;
+  background: var(--bg-input);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+.link-card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.link-card-meta-item {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.link-card-meta-item span {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.link-card-content {
+  background: var(--bg-primary);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 12px;
+  max-height: 80px;
+  overflow: hidden;
+  position: relative;
+}
+.link-card-content.expanded {
+  max-height: none;
+}
+.link-card-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(transparent, var(--bg-primary));
+}
+.link-card-content.expanded::after {
+  display: none;
+}
+.link-card-expand {
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent-blue);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.link-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.link-card-actions button {
+  padding: 8px;
+  font-size: 12px;
+  width: 100%;
+}
+
+/* ===== 手机端响应式 (< 768px) ===== */
+@media (max-width: 768px) {
+  .container { padding: 12px; }
+  .form-row { grid-template-columns: 1fr; }
+  .header { flex-direction: row; gap: 12px; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 18px; }
+  .header-actions { flex-shrink: 0; }
+  .nav-tabs { gap: 6px; }
+  .nav-tab { padding: 8px 14px; font-size: 13px; }
+  .search-box { flex-direction: column; }
+  .search-box button { width: 100%; }
+  .result-link { flex-direction: column; }
+  .result-link input { width: 100%; }
+  
+  /* 隐藏桌面表格，显示手机卡片 */
+  .links-table-desktop { display: none !important; }
+  .links-cards-mobile { display: block !important; }
+  
+  .expire-selector { gap: 6px; }
+  .expire-option { padding: 6px 10px; font-size: 12px; }
+  
+  .stat-card { padding: 14px; }
+  .stat-card .value { font-size: 24px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  
+  .modal { padding: 20px; max-height: 90vh; }
+  .qr-modal .modal { max-width: 90%; }
+}
+
+/* ===== 超小屏幕 (< 480px) ===== */
+@media (max-width: 480px) {
+  .link-card-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .link-card-meta {
+    grid-template-columns: 1fr;
+  }
+  .login-box { padding: 24px; }
+}
+  </style>
+<base target="_blank">
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h1>🔐 短链接管理</h1>
+      <p>请输入安全访问码进入管理面板</p>
+      <input type="password" id="accessCode" placeholder="输入安全访问码..." autocomplete="off">
+      <div class="error-msg" id="loginError">访问码错误</div>
+      <button onclick="doLogin()">进入管理面板</button>
+    </div>
+  </div>
+
+  <div id="panel" class="panel container">
+    <div class="header">
+      <h1>🔗 短链接管理</h1>
+      <div class="header-actions">
+        <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="切换主题">🌙</button>
+        <button class="theme-btn" onclick="doLogout()" title="退出登录">🚪</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="switchTab('create')">✨ 创建短链</div>
+      <div class="nav-tab" onclick="switchTab('list')">📋 链接列表</div>
+      <div class="nav-tab" onclick="switchTab('stats')">📊 统计分析</div>
+    </div>
+
+    <div id="tab-create" class="tab-content active">
+      <div class="form-card">
+        <div class="type-selector">
+          <div class="type-option active" onclick="selectType('text')" id="type-text">
+            <div class="icon">📝</div>
+            <div class="label">文本内容</div>
+          </div>
+          <div class="type-option" onclick="selectType('url')" id="type-url">
+            <div class="icon">🌐</div>
+            <div class="label">URL 跳转</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>目标内容</label>
+          <textarea id="content" rows="4" placeholder="输入 URL 或文本内容..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>自定义短码（可选，最少2位）</label>
+            <input type="text" id="customCode" placeholder="如: abc123" maxlength="32">
+          </div>
+          <div class="form-group">
+            <label>有效期</label>
+            <div class="expire-selector" id="expireSelector">
+                  <div class="expire-option active" data-minutes="60">1小时</div>
+              <div class="expire-option" data-minutes="720">12小时</div>
+              <div class="expire-option" data-minutes="1440">24小时</div>
+              <div class="expire-option" data-minutes="43200">1个月</div>
+              <div class="expire-option" data-minutes="0">永久</div>
+              <div class="expire-option" data-custom="true">自定义</div>
+            </div>
+            <div class="expire-custom" id="expireCustom">
+              <input type="number" id="customExpireHours" placeholder="输入小时数" min="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>备注（可选）</label>
+          <input type="text" id="remark" placeholder="添加备注说明...">
+        </div>
+
+        <button onclick="createLink()">创建短链接</button>
+
+        <div class="result-box" id="createResult">
+          <h3>✅ 创建成功</h3>
+          <div class="result-link">
+            <input type="text" id="resultLink" readonly>
+            <button class="btn-sm btn-copy" onclick="copyResultLink()">复制</button>
+          </div>
+          <div class="qr-container" id="createQR"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-list" class="tab-content" style="display:none;">
+      <div class="stats-grid" id="listStats"></div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索短码或内容..." oninput="filterLinks()">
+        <button onclick="clearSearch()">清除</button>
+      </div>
+      <!-- 桌面端表格 -->
+      <div class="links-table-desktop" id="linksTableDesktop"></div>
+      <!-- 手机端卡片 -->
+      <div class="links-cards-mobile" id="linksCardsMobile"></div>
+    </div>
+
+    <div id="tab-stats" class="tab-content" style="display:none;">
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="textModal">
+    <div class="modal">
+      <h2>📝 文本内容预览</h2>
+      <div class="text-preview" id="textPreview"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">关闭</button>
+        <button class="btn-copy" onclick="copyText()">复制内容</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h2>✏️ 编辑短链接</h2>
+      <input type="hidden" id="editCode">
+      <div class="form-group">
+        <label>目标内容</label>
+        <textarea id="editContent" rows="4"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>有效期（小时，0为永久）</label>
+          <input type="number" id="editExpire" min="0">
+        </div>
+        <div class="form-group">
+          <label>备注</label>
+          <input type="text" id="editRemark">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeEditModal()">取消</button>
+        <button onclick="saveEdit()">保存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay qr-modal" id="qrModal">
+    <div class="modal">
+      <h2>📱 二维码</h2>
+      <div class="qr-link" id="qrLinkText"></div>
+      <div class="qr-display" id="qrDisplay"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeQrModal()">关闭</button>
+        <button class="btn-copy" onclick="downloadQR()">下载二维码</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const API_BASE = '/api';
+    let currentType = 'text';
+    let linksData = [];
+    let filteredLinks = [];
+    let currentText = '';
+    let currentQRUrl = '';
+    let currentExpireMinutes = 60;
+
+    // 主题切换
+    function initTheme() {
+      const saved = localStorage.getItem('shorturl_theme');
+      if (saved === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        document.getElementById('themeBtn').textContent = '🌙';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = '🌞';
+        if (!saved) localStorage.setItem('shorturl_theme', 'light');
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const btn = document.getElementById('themeBtn');
+      if (html.getAttribute('data-theme') === 'light') {
+        html.removeAttribute('data-theme');
+        btn.textContent = '🌙';
+        localStorage.setItem('shorturl_theme', 'dark');
+      } else {
+        html.setAttribute('data-theme', 'light');
+        btn.textContent = '🌞';
+        localStorage.setItem('shorturl_theme', 'light');
+      }
+    }
+
+    // 有效期选择
+    function initExpireSelector() {
+      document.querySelectorAll('.expire-option').forEach(el => {
+        el.addEventListener('click', function() {
+          document.querySelectorAll('.expire-option').forEach(e => e.classList.remove('active'));
+          this.classList.add('active');
+          
+          const custom = document.getElementById('expireCustom');
+          if (this.dataset.custom === 'true') {
+            custom.classList.add('show');
+            currentExpireMinutes = null;
+          } else {
+            custom.classList.remove('show');
+            currentExpireMinutes = parseInt(this.dataset.minutes);
+          }
+        });
+      });
+    }
+
+    function getExpireHours() {
+      const customEl = document.querySelector('.expire-option[data-custom="true"]');
+      if (customEl.classList.contains('active')) {
+        const hours = parseInt(document.getElementById('customExpireHours').value);
+        return isNaN(hours) ? 0 : hours;
+      }
+      return currentExpireMinutes === 0 ? 0 : currentExpireMinutes / 60;
+    }
+
+    // 二维码生成
+    function generateQR(containerId, url, size = 200) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      const qr = new QRCode(container, {
+        text: url,
+        width: size,
+        height: size,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      return qr;
+    }
+
+    function showQRModal(url) {
+      currentQRUrl = url;
+      document.getElementById('qrLinkText').textContent = url;
+      document.getElementById('qrDisplay').innerHTML = '';
+      generateQR('qrDisplay', url, 250);
+      document.getElementById('qrModal').classList.add('active');
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.remove('active');
+    }
+
+    function downloadQR() {
+      const canvas = document.querySelector('#qrDisplay canvas');
+      if (canvas) {
+        const link = document.createElement('a');
+        link.download = 'qrcode.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      }
+    }
+
+    function showCreateResult(code, url) {
+      const box = document.getElementById('createResult');
+      document.getElementById('resultLink').value = url;
+      generateQR('createQR', url, 180);
+      box.classList.add('show');
+    }
+
+    function copyResultLink() {
+      const url = document.getElementById('resultLink').value;
+      navigator.clipboard.writeText(url).then(() => showToast('链接已复制'));
+    }
+
+    // 搜索功能
+    function filterLinks() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!keyword) {
+        filteredLinks = [...linksData];
+      } else {
+        filteredLinks = linksData.filter(link => 
+          link.code.toLowerCase().includes(keyword) ||
+          link.content.toLowerCase().includes(keyword) ||
+          (link.remark && link.remark.toLowerCase().includes(keyword))
+        );
+      }
+      renderLinks();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      filteredLinks = [...linksData];
+      renderLinks();
+    }
+
+    function checkAuth() {
+      const token = localStorage.getItem('shorturl_token');
+      if (token) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('panel').classList.add('active');
+        loadLinks();
+      }
+    }
+
+    async function doLogin() {
+      const code = document.getElementById('accessCode').value.trim();
+      const error = document.getElementById('loginError');
+      
+      try {
+        const res = await fetch(`${API_BASE}/auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          localStorage.setItem('shorturl_token', data.token);
+          document.getElementById('loginScreen').style.display = 'none';
+          document.getElementById('panel').classList.add('active');
+          loadLinks();
+        } else {
+          error.textContent = data.error || '访问码错误';
+          error.classList.add('show');
+          setTimeout(() => error.classList.remove('show'), 3000);
+        }
+      } catch (e) {
+        showToast('网络错误: ' + e.message, 'error');
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem('shorturl_token');
+      location.reload();
+    }
+
+    function selectType(type) {
+      currentType = type;
+      document.querySelectorAll('.type-option').forEach(el => el.classList.remove('active'));
+      document.getElementById(`type-${type}`).classList.add('active');
+      const placeholder = type === 'text' ? '输入要分享的文本内容...' : '输入要跳转的 URL，如 https://example.com';
+      document.getElementById('content').placeholder = placeholder;
+    }
+
+    async function createLink() {
+      const content = document.getElementById('content').value.trim();
+      const customCode = document.getElementById('customCode').value.trim();
+      const expireHours = getExpireHours();
+      const remark = document.getElementById('remark').value.trim();
+
+      if (!content) {
+        showToast('请输入内容', 'error');
+        return;
+      }
+
+      if (currentType === 'url' && !content.startsWith('http')) {
+        showToast('URL 必须以 http:// 或 https:// 开头', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/links`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('shorturl_token')}`
+          },
+          body: JSON.stringify({
+            type: currentType,
+            content,
+            customCode: customCode || null,
+            expireHours,
+            remark
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`创建成功！短码: ${data.code}`);
+          showCreateResult(data.code, data.shortUrl);
+          document.getElementById('content').value = '';
+          document.getElementById('customCode').value = '';
+          document.getElementById('remark').value = '';
+          if (document.getElementById('tab-list').style.display !== 'none') {
+            loadLinks();
+          }
+        } else {
+          showToast(data.error || `创建失败 (${res.status})`, 'error');
+        }
+      } catch (e) {
+        showToast('创建失败: ' + e.message, 'error');
+      }
+    }
+
+    async function loadLinks() {
+      try {
+        const res = await fetch(`${API_BASE}/links`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('shorturl_token')}` }
+        });
+        
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 401) {
+            showToast('登录已过期，请重新登录', 'error');
+            doLogout();
+          } else {
+            showToast(data.error || `加载失败 (${res.status})`, 'error');
+          }
+          return;
+        }
+        
+        linksData = await res.json();
+        filteredLinks = [...linksData];
+        renderLinks();
+        renderStats();
+      } catch (e) {
+        showToast('加载数据失败: ' + e.message, 'error');
+      }
+    }
+
+    function renderLinks() {
+      const total = linksData.length;
+      const active = linksData.filter(l => !l.expired).length;
+      const expired = total - active;
+      const urlCount = linksData.filter(l => l.type === 'url').length;
+      
+      document.getElementById('listStats').innerHTML = `
+        <div class="stat-card"><div class="label">总链接数</div><div class="value">${total}</div></div>
+        <div class="stat-card"><div class="label">有效链接</div><div class="value" style="color:var(--accent-green)">${active}</div></div>
+        <div class="stat-card"><div class="label">已过期</div><div class="value" style="color:var(--accent-red)">${expired}</div></div>
+        <div class="stat-card"><div class="label">URL / 文本</div><div class="value">${urlCount} / ${total - urlCount}</div></div>
+      `;
+
+      renderDesktopTable();
+      renderMobileCards();
+    }
+
+    // 桌面端表格渲染
+    function renderDesktopTable() {
+      const container = document.getElementById('linksTableDesktop');
+      const data = filteredLinks;
+
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>${linksData.length === 0 ? '暂无短链接，快去创建一个吧！' : '没有匹配的搜索结果'}</p>
+          </div>`;
+        return;
+      }
+
+      const baseUrl = location.origin;
+      let html = `<table class="links-table-desktop">
+        <thead>
+          <tr>
+            <th>短码</th>
+            <th>类型</th>
+            <th>内容预览</th>
+            <th>状态</th>
+            <th>访问数</th>
+            <th>创建时间</th>
+            <th>过期时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      data.forEach(link => {
+        const isExpired = link.expired;
+        const contentPreview = link.content.length > 40 ? link.content.substring(0, 40) + '...' : link.content;
+        const fullUrl = `${baseUrl}/${link.code}`;
+        
+        html += `<tr>
+          <td><span class="short-code" style="cursor:pointer;" onclick="window.open('${fullUrl}', '_blank')">${link.code}</span></td>
+          <td><span class="tag tag-${link.type}">${link.type === 'url' ? '🔗 URL' : '📝 文本'}</span></td>
+          <td title="${link.content}">${contentPreview}</td>
+          <td><span class="tag ${isExpired ? 'tag-expired' : 'tag-active'}">${isExpired ? '已过期' : '有效'}</span></td>
+          <td>${link.visits || 0}</td>
+          <td>${formatDate(link.createdAt)}</td>
+          <td>${link.expireAt ? formatDate(link.expireAt) : '永久'}</td>
+          <td>
+            <div class="actions">
+              <button class="btn-sm btn-copy" onclick="copyLink('${fullUrl}')">复制</button>
+              <button class="btn-sm btn-qr" onclick="showQRModal('${fullUrl}')">二维码</button>
+              ${link.type === 'text' ? `<button class="btn-sm btn-secondary" onclick="previewText('${link.code}')">预览</button>` : ''}
+              <button class="btn-sm btn-secondary" onclick="openEdit('${link.code}')">编辑</button>
+              <button class="btn-sm btn-danger" onclick="deleteLink('${link.code}')">删除</button>
+            </div>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // 手机端卡片渲染
+    function renderMobileCards() {
+      const container = document.getElementById('linksCardsMobile');
+      const data = filteredLinks;
+
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>${linksData.length === 0 ? '暂无短链接，快去创建一个吧！' : '没有匹配的搜索结果'}</p>
+          </div>`;
+        return;
+      }
+
+      const baseUrl = location.origin;
+      let html = '';
+
+      data.forEach((link, index) => {
+        const isExpired = link.expired;
+        const fullUrl = `${baseUrl}/${link.code}`;
+        const contentShort = link.content.length > 60 ? link.content.substring(0, 60) + '...' : link.content;
+        
+        html += `
+        <div class="link-card">
+          <div class="link-card-header">
+            <span class="link-card-code" style="cursor:pointer;" onclick="window.open('${fullUrl}', '_blank')">${link.code}</span>
+            <span class="tag ${isExpired ? 'tag-expired' : 'tag-active'}">${isExpired ? '已过期' : '有效'}</span>
+          </div>
+          <div class="link-card-meta">
+            <div class="link-card-meta-item">类型: <span class="tag tag-${link.type}">${link.type === 'url' ? '🔗 URL' : '📝 文本'}</span></div>
+            <div class="link-card-meta-item">访问: <span>${link.visits || 0}</span></div>
+            <div class="link-card-meta-item">创建: <span>${formatDate(link.createdAt)}</span></div>
+            <div class="link-card-meta-item">过期: <span>${link.expireAt ? formatDate(link.expireAt) : '永久'}</span></div>
+          </div>
+          <div class="link-card-content" id="cardContent${index}">${link.content}</div>
+          ${link.content.length > 60 ? `<div class="link-card-expand" onclick="toggleCardContent(${index})">展开更多</div>` : ''}
+          <div class="link-card-actions">
+            <button class="btn-sm btn-copy" onclick="copyLink('${fullUrl}')">复制</button>
+            <button class="btn-sm btn-qr" onclick="showQRModal('${fullUrl}')">二维码</button>
+            ${link.type === 'text' ? `<button class="btn-sm btn-secondary" onclick="previewText('${link.code}')">预览</button>` : ''}
+            <button class="btn-sm btn-secondary" onclick="openEdit('${link.code}')">编辑</button>
+            <button class="btn-sm btn-danger" onclick="deleteLink('${link.code}')">删除</button>
+          </div>
+        </div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function toggleCardContent(index) {
+      const el = document.getElementById(`cardContent${index}`);
+      el.classList.toggle('expanded');
+      const btn = el.nextElementSibling;
+      if (btn && btn.classList.contains('link-card-expand')) {
+        btn.textContent = el.classList.contains('expanded') ? '收起' : '展开更多';
+      }
+    }
+
+    function renderStats() {
+      const total = linksData.length;
+      const urlCount = linksData.filter(l => l.type === 'url').length;
+      const textCount = total - urlCount;
+      const totalVisits = linksData.reduce((sum, l) => sum + (l.visits || 0), 0);
+      const activeCount = linksData.filter(l => !l.expired).length;
+      const expiredCount = total - activeCount;
+      const todayCreated = linksData.filter(l => {
+        const d = new Date(l.createdAt);
+        const now = new Date();
+        return d.toDateString() === now.toDateString();
+      }).length;
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card"><div class="label">总链接数</div><div class="value">${total}</div></div>
+        <div class="stat-card"><div class="label">URL 链接</div><div class="value" style="color:var(--accent-blue)">${urlCount}</div></div>
+        <div class="stat-card"><div class="label">文本链接</div><div class="value" style="color:var(--accent-green)">${textCount}</div></div>
+        <div class="stat-card"><div class="label">总访问量</div><div class="value">${totalVisits}</div></div>
+        <div class="stat-card"><div class="label">有效链接</div><div class="value" style="color:var(--accent-green)">${activeCount}</div></div>
+        <div class="stat-card"><div class="label">已过期</div><div class="value" style="color:var(--accent-red)">${expiredCount}</div></div>
+        <div class="stat-card"><div class="label">今日创建</div><div class="value">${todayCreated}</div></div>
+        <div class="stat-card"><div class="label">平均访问</div><div class="value">${total > 0 ? Math.round(totalVisits / total) : 0}</div></div>
+      `;
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      if (tab === 'list' || tab === 'stats') loadLinks();
+    }
+
+    function copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => showToast('链接已复制到剪贴板'));
+    }
+
+    async function previewText(code) {
+      const link = linksData.find(l => l.code === code);
+      if (!link) return;
+      currentText = link.content;
+      document.getElementById('textPreview').textContent = link.content;
+      document.getElementById('textModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('textModal').classList.remove('active');
+    }
+
+    function copyText() {
+      navigator.clipboard.writeText(currentText).then(() => {
+        showToast('内容已复制');
+        closeModal();
+      });
+    }
+
+    function openEdit(code) {
+      const link = linksData.find(l => l.code === code);
+      if (!link) return;
+      document.getElementById('editCode').value = code;
+      document.getElementById('editContent').value = link.content;
+      document.getElementById('editExpire').value = link.expireHours || 0;
+      document.getElementById('editRemark').value = link.remark || '';
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function saveEdit() {
+      const code = document.getElementById('editCode').value;
+      const content = document.getElementById('editContent').value.trim();
+      const expireHours = parseInt(document.getElementById('editExpire').value) || 0;
+      const remark = document.getElementById('editRemark').value.trim();
+
+      if (!content) {
+        showToast('内容不能为空', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/links`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('shorturl_token')}`
+          },
+          body: JSON.stringify({ code, content, expireHours, remark })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showToast('修改成功');
+          closeEditModal();
+          loadLinks();
+        } else {
+          showToast(data.error || '修改失败', 'error');
+        }
+      } catch (e) {
+        showToast('修改失败: ' + e.message, 'error');
+      }
+    }
+
+    async function deleteLink(code) {
+      if (!confirm(`确定要删除短码 "${code}" 吗？此操作不可恢复。`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/links`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('shorturl_token')}`
+          },
+          body: JSON.stringify({ code })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showToast('删除成功');
+          loadLinks();
+        } else {
+          showToast(data.error || '删除失败', 'error');
+        }
+      } catch (e) {
+        showToast('删除失败: ' + e.message, 'error');
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    document.getElementById('accessCode')?.addEventListener('keypress', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    initTheme();
+    initExpireSelector();
+    checkAuth();
+  </script>
+</body>
+</html>
